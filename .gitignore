@@ -1,3 +1,8 @@
+#Server specific
+bundler/
+server/
+ui-tester/
+
 # Logs
 logs
 *.log

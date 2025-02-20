@@ -3,7 +3,7 @@ import path from "path";
 import { ICommand, SummonCommand } from "./commandBuilder";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
-const SERVER_JAR = path.join(SERVER_FOLDER, "/spigot.jar");
+const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
 
 let mcServer: ChildProcess | null = null;
 

@@ -1,0 +1,34 @@
+name: tedcomccommands
+version: '1.0-SNAPSHOT'
+main: dev.nifusion.tedcomccommands.Tedcomccommands
+api-version: '1.21'
+commands:
+  fling:
+    description: Fling a player into the air.
+    usage: /fling <player> <power> [redeemer]
+    permission: fling.use
+  floatyheals:
+    description: Flings a splash potion of health from the player.
+    usage: /floatyheals <player> <count> [redeemer]
+    permission: floatyheals.use
+  makeitrainheals:
+    description: Rains lingering potions of health on the player.
+    usage: /makeitrainheals <player> <count> [redeemer]
+    permission: makeitrainheals.use
+  smackdatass:
+    description: Gives the player a firm, healing booty smack.
+    usage: /smackdatass <player> [redeemer]
+    permission: smackdatass.use
+permissions:
+  fling.use:
+    description: Allows a player to use the fling command
+    default: op
+  floatyheals.use:
+    description: Allows a player to use the floatyheals command
+    default: op
+  makeitrainheals.use:
+    description: Allows a player to use the makeitrainheals command
+    default: op
+  smackdatass.use:
+    description: Allows a player to use the smackdatass command
+    default: op

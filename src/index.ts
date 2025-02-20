@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import ReadLine from "readline";
 const crypto = require("crypto");
+require("dotenv").config();
 
 import {
   getServerProcess,
@@ -16,6 +17,7 @@ import {
   getOAuthToken,
   subscribeToEventSub,
 } from "./subscriptionManager";
+import StreamElementsSocket from "./streamelementsSocket";
 
 const app = express();
 app.use(express.json());
@@ -51,7 +53,7 @@ app.get("/test", (req, res) => {
   });
 });
 
-app.post('/'+DIRECT_SECRET_ENDPOINT, (req, res) => {
+app.post("/" + DIRECT_SECRET_ENDPOINT, (req, res) => {
   console.log(req.body);
 
   res.status(200).send("Event received");
@@ -71,10 +73,10 @@ app.post("/webhook", (req, res) => {
     return;
   }
 
-  // if (req.body) {
-  //   const command = ProcessRedemption(req.body.event.reward.title);
-  //   if (command) sendCommand(command);
-  // }
+  if (req.body) {
+    const command = ProcessRedemption(req.body.event.reward.title, "Nifusion", req.body.event.user_name);
+    if (command) sendCommand(command);
+  }
 
   res.status(200).send("Event received");
 });
@@ -98,9 +100,12 @@ app.listen(API_PORT, async () => {
     token,
     broadcasterId
   );
-  await subscribeToEventSub("channel.subscribe", token, broadcasterId);
-  await subscribeToEventSub("channel.cheer", token, broadcasterId);
+  //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
+  //await subscribeToEventSub("channel.cheer", token, broadcasterId);
+
   startServerInstance();
+
+  //new StreamElementsSocket(process.env.JWT ?? "").connect();
 
   rl.on("line", (input) => {
     switch (input) {

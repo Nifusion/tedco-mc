@@ -58,45 +58,45 @@ export async function getBroadcasterId(username: string, token: string) {
 }
 
 export async function deleteAllSubscriptions(accessToken: string) {
-    try {
-      const response = await axios.get(
-        "https://api.twitch.tv/helix/eventsub/subscriptions",
-        {
-          headers: {
-            "Client-ID": TWITCH_CLIENT_ID,
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
-      );
-  
-      const subscriptions = response.data.data;
-  
-      if (subscriptions.length > 0) {
-        for (const subscription of subscriptions) {
-          const subscriptionId = subscription.id;
-          console.log(`Deleting subscription with ID: ${subscriptionId}`);
-  
-          await axios.delete(
-            `https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`,
-            {
-              headers: {
-                "Client-ID": TWITCH_CLIENT_ID,
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
-          console.log(`Subscription with ID: ${subscriptionId} deleted`);
-        }
-      } else {
-        console.log("No subscriptions found to delete");
+  try {
+    const response = await axios.get(
+      "https://api.twitch.tv/helix/eventsub/subscriptions",
+      {
+        headers: {
+          "Client-ID": TWITCH_CLIENT_ID,
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
-    } catch (error : any) {
-      console.error(
-        "Error deleting subscriptions:",
-        error.response?.data || error.message
-      );
+    );
+
+    const subscriptions = response.data.data;
+
+    if (subscriptions.length > 0) {
+      for (const subscription of subscriptions) {
+        const subscriptionId = subscription.id;
+        console.log(`Deleting subscription with ID: ${subscriptionId}`);
+
+        await axios.delete(
+          `https://api.twitch.tv/helix/eventsub/subscriptions?id=${subscriptionId}`,
+          {
+            headers: {
+              "Client-ID": TWITCH_CLIENT_ID,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        console.log(`Subscription with ID: ${subscriptionId} deleted`);
+      }
+    } else {
+      console.log("No subscriptions found to delete");
     }
+  } catch (error: any) {
+    console.error(
+      "Error deleting subscriptions:",
+      error.response?.data || error.message
+    );
   }
+}
 
 export async function subscribeToEventSub(
   eventType: string,

@@ -30,7 +30,7 @@ export class SummonCommand implements ICommand {
   }
 
   withNBT(args: VagueStringToAnyDictionary) {
-    this.NBT = { ...this.NBT, ...args };
+    this.NBT = { ...this.NBT, ...args, Tags: [...this.NBT.Tags, ...args.Tags] };
     return this;
   }
 
@@ -44,5 +44,17 @@ export class SummonCommand implements ICommand {
     }
 
     return command;
+  }
+}
+
+export class DirectCommand implements ICommand {
+  command: String;
+
+  constructor(command: string) {
+    this.command = command;
+  }
+
+  toString(): String {
+    return this.command;
   }
 }

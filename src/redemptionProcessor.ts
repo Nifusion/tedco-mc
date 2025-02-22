@@ -1,4 +1,4 @@
-import { processDirect } from "./MobProcessing/defaults";
+import { coinFlip, processDirect } from "./MobProcessing/defaults";
 import { processHusk } from "./MobProcessing/husk";
 import { processPillager } from "./MobProcessing/pillager";
 import { processSkeleton } from "./MobProcessing/skeleton";
@@ -13,6 +13,17 @@ import { DirectCommand } from "./directCommand";
 import { randomNumber } from "./mathUtils";
 import { sendCommand } from "./serverManager";
 import { SummonPassiveCommand } from "./summonPassiveCommand";
+import {
+  randomCatVariant,
+  randomFrogVariant,
+  randomHorseVariant,
+  randomLlamaVariant,
+  randomPandaGene,
+  randomParrotVariant,
+  randomRabbitVariant,
+  randomSheepVariant,
+  randomWolfVariant,
+} from "./variants";
 
 interface IRedemptionDictionary {
   [key: string]: (payload: Redemption) => void;
@@ -244,42 +255,69 @@ function processRolledPassiveMob(
   mob: RandomPassiveMobIds,
   payload: Redemption
 ) {
+  const summon = new SummonPassiveCommand(payload.ign, mob);
+  summon.setCustomName(payload.namedAfter);
+
+  const isBaby = randomNumber(1, 25) === 1;
+  if (isBaby) summon.setAge(-25000);
+
   switch (mob) {
     case "minecraft:parrot":
+      summon.setParrot(randomParrotVariant());
+      break;
+    case "minecraft:cat":
+      summon.setCat(randomCatVariant());
+      break;
+    case "minecraft:frog":
+      summon.setFrog(randomFrogVariant());
+      break;
+    case "minecraft:horse":
+      summon.setHorse(randomHorseVariant());
+      break;
+    case "minecraft:llama":
+      summon.setLlama(randomLlamaVariant());
+      break;
+    case "minecraft:wolf":
+      summon.setWolf(randomWolfVariant());
+      break;
+    case "minecraft:rabbit":
+      summon.setRabbit(randomRabbitVariant());
+      break;
+    case "minecraft:sheep":
+      summon.setSheep(randomSheepVariant());
+      break;
+    case "minecraft:goat":
+      summon.setGoat(randomNumber(1, 10) === 1, coinFlip(), coinFlip());
+      break;
+    case "minecraft:chicken":
+      summon.setChicken();
+      break;
+    case "minecraft:panda":
+      summon.setPanda(randomPandaGene(), randomPandaGene());
+      break;
     case "minecraft:armadillo":
     case "minecraft:bee":
     case "minecraft:camel":
-    case "minecraft:cat":
-    case "minecraft:chicken":
     case "minecraft:cow":
     case "minecraft:donkey":
     case "minecraft:fox":
-    case "minecraft:frog":
-    case "minecraft:goat":
-    case "minecraft:horse":
     case "minecraft:iron_golem":
-    case "minecraft:llama":
     case "minecraft:mooshroom":
     case "minecraft:mule":
     case "minecraft:ocelot":
-    case "minecraft:panda":
     case "minecraft:pig":
     case "minecraft:polar_bear":
-    case "minecraft:rabbit":
-    case "minecraft:sheep":
     case "minecraft:skeleton_horse":
     case "minecraft:sniffer":
     case "minecraft:snow_golem":
     case "minecraft:strider":
-    case "minecraft:wolf":
     case "minecraft:zombie_horse":
-      const summon = new SummonPassiveCommand(payload.ign, mob);
-      summon.setCustomName(payload.namedAfter);
-      sendCommand(summon);
       break;
     default:
       payload.namedAfter = "Nifusion sucks at coding";
       processDirect(payload, "minecraft:armor_stand");
       break;
   }
+
+  sendCommand(summon);
 }

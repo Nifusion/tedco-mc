@@ -13,7 +13,7 @@ let mcServer: ChildProcess | null = null;
 export function startServerInstance() {
   if (!mcServer) {
     mcServer = spawn(
-      "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe",
+      "java",
       ["-Xmx4G", "-Xms4G", "-jar", SERVER_JAR, "nogui"],
       {
         cwd: SERVER_FOLDER,

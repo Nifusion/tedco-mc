@@ -41,17 +41,17 @@ function verifySignature(req: any) {
   );
 }
 
-app.get("/", (req, res) => {
+app.get("/api", (req, res) => {
   res.send("Why are you even here? Go away.");
 });
 
-app.post("/" + DIRECT_SECRET_ENDPOINT, (req, res) => {
+app.post("/api" + DIRECT_SECRET_ENDPOINT, (req, res) => {
   console.log(req.body);
 
   res.status(200).send("Event received");
 });
 
-app.post("/webhook", (req, res) => {
+app.post("/api/webhook", (req, res) => {
   if (!verifySignature(req)) {
     res.status(403).send("Forbidden");
     return;

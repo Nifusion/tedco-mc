@@ -1,23 +1,21 @@
-import express from "express";
 import cors from "cors";
+import express from "express";
 import ReadLine from "readline";
 const crypto = require("crypto");
 require("dotenv").config();
 
+import { ProcessRedemption } from "./redemptionProcessor";
 import {
   getServerProcess,
   sendCommand,
   startServerInstance,
 } from "./serverManager";
-import { SummonCommand } from "./commandBuilder";
-import { ProcessRedemption } from "./redemptionProcessor";
 import {
   deleteAllSubscriptions,
   getBroadcasterId,
   getOAuthToken,
   subscribeToEventSub,
 } from "./subscriptionManager";
-import StreamElementsSocket from "./streamelementsSocket";
 
 const app = express();
 app.use(express.json());
@@ -43,7 +41,7 @@ function verifySignature(req: any) {
 }
 
 app.get("/", (req, res) => {
-  res.send("Hello, World!");
+  res.send("Why are you even here? Go away.");
 });
 
 app.get("/test", (req, res) => {
@@ -60,8 +58,6 @@ app.post("/" + DIRECT_SECRET_ENDPOINT, (req, res) => {
 });
 
 app.post("/webhook", (req, res) => {
-  console.log(req.body);
-
   if (!verifySignature(req)) {
     res.status(403).send("Forbidden");
     return;
@@ -74,7 +70,17 @@ app.post("/webhook", (req, res) => {
   }
 
   if (req.body) {
-    const command = ProcessRedemption(req.body.event.reward.title, "Nifusion", req.body.event.user_name);
+    console.log(
+      `Redemption "${req.body.event.reward.title}" received from ${req.body.event.user_name}`
+    );
+
+    const command = ProcessRedemption({
+      amount: 1,
+      eventTitle: req.body.event.reward.title,
+      ign: "Nifusion",
+      namedAfter: req.body.event.user_name,
+    });
+
     if (command) sendCommand(command);
   }
 

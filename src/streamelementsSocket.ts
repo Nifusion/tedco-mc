@@ -40,7 +40,6 @@ class StreamElementsSocket {
     });
 
     this.socket.on("event", (data) => {
-      console.log("Received event:", data);
       this.handleEvent(data);
     });
   }
@@ -61,8 +60,27 @@ class StreamElementsSocket {
       console.log(
         `Cheer received: ${event.data.amount} bits from ${event.data.username}`
       );
+    } else if (event.type === "communityGiftPurchase") {
+      console.log(
+        `${event.data.username} gifted ${event.data.amount} to the stream`
+      );
+    } else if (event.type === "subscriber") {
+      console.log(
+        `${event.data.username} subscribed to the stream; subscribed for ${event.data.amount}, streak ${event.data.streak}`
+      );
+    } else if (event.type === "merch") {
+      console.log(
+        `${event.data.username} bought ${event.data.items.length} merch item(s) totalling $${event.data.amount}`
+      );
+    } else if (event.type === "raid") {
+      console.log(
+        `${event.data.username} is raiding the stream with ${event.data.amount} viewers`
+      );
     } else {
-      console.log(event);
+      console.log(
+        "WE DIDN'T COVER THIS EVENT WEEE WOOO WEE WOOO WEE WOOOO",
+        event
+      );
     }
   };
 

@@ -85,10 +85,8 @@ public class FloatySplashHealCommand implements CommandExecutor, Listener {
                         Location potionLocation = thrownPotion.getLocation();
                         Location trailLocation = potionLocation.clone().subtract(0, 0.3, 0);
 
-                        // Every 5th tick, spawn a heart particle
                         counter[0]++;
-                        if (counter[0] % 5 == 0) {
-                            // Spawn heart particle
+                        if (counter[0] % 10 == 0) {
                             player.getWorld().spawnParticle(Particle.HEART, trailLocation, 1, 0, 0, 0, 0.05);
                         }
                     }
@@ -103,7 +101,7 @@ public class FloatySplashHealCommand implements CommandExecutor, Listener {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (player.isOnline()) { // Ensure player is still online
+                if (player.isOnline()) {
                     player.sendMessage(message);
                 }
             }

@@ -5,20 +5,24 @@ api-version: '1.21'
 commands:
   fling:
     description: Fling a player into the air.
-    usage: /fling <player> <power> [redeemer]
+    usage: /fling <player> <power>
     permission: fling.use
   floatyheals:
     description: Flings a splash potion of health from the player.
-    usage: /floatyheals <player> <count> [redeemer]
+    usage: /floatyheals <player> <count>
     permission: floatyheals.use
   makeitrainheals:
     description: Rains lingering potions of health on the player.
-    usage: /makeitrainheals <player> <count> [redeemer]
+    usage: /makeitrainheals <player> <count>
     permission: makeitrainheals.use
   smackdatass:
     description: Gives the player a firm, healing booty smack.
-    usage: /smackdatass <player> [redeemer]
+    usage: /smackdatass <player>
     permission: smackdatass.use
+  llamamad:
+    description: Summons an angry llama.
+    usage: /llamamad
+    permission: llamamad.use
 permissions:
   fling.use:
     description: Allows a player to use the fling command
@@ -31,4 +35,7 @@ permissions:
     default: op
   smackdatass.use:
     description: Allows a player to use the smackdatass command
+    default: op
+  llamamad.use:
+    description: Allows a player to use the llamamad command
     default: op

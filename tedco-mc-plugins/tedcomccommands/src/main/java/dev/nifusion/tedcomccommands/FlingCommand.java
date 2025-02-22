@@ -39,14 +39,7 @@ public class FlingCommand implements CommandExecutor, Listener {
             return false;
         }
 
-        String redeemer = null;
-        if (args.length == 3) {
-            redeemer = args[2];
-        }
-
         player.setVelocity(player.getVelocity().setY(power));
-        if (redeemer != null)
-            player.sendMessage(redeemer + " gave you a boost!");
 
         noFallDamage.add(player);
 

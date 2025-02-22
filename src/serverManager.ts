@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
-import { ICommand, SummonCommand } from "./commandBuilder";
+import { ProcessRedemption } from "./redemptionProcessor";
+import { ICommand } from "./ICommand";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
 const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
@@ -11,17 +12,102 @@ export function startServerInstance() {
   if (!mcServer) {
     mcServer = spawn(
       "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe",
-      ["-Xmx2G", "-Xms1G", "-jar", SERVER_JAR, "nogui"],
+      ["-Xmx4G", "-Xms4G", "-jar", SERVER_JAR, "nogui"],
       {
         cwd: SERVER_FOLDER,
       }
     );
 
-    mcServer?.stdout?.on("data", (data: String) => {
-      if (data.indexOf("!test") > -1) {
-        sendCommand(
-          new SummonCommand("minecraft:zombie").executeAt("Nifusion")
-        );
+    mcServer?.stdout?.on("data", (data: string) => {
+      if (data.indexOf("!testheal") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 1,
+            eventTitle: "Heal",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testrandom") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 1,
+            eventTitle: "Random",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testpassive") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 1,
+            eventTitle: "Passive",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testsub") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 5,
+            eventTitle: "Random",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testgift5") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 25,
+            eventTitle: "Random",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testgift10") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 50,
+            eventTitle: "Random",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
+      }
+
+      if (data.indexOf("!testgift50") > -1) {
+        const matchArray = String(data).match(/<([^>]+)>/g);
+        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
+        if (matches.length >= 1) {
+          ProcessRedemption({
+            amount: 250,
+            eventTitle: "Random",
+            ign: matches[0],
+            namedAfter: "TestCommand",
+          });
+        }
       }
       console.error(`MC DATA: ${data.toString()}`);
     });
@@ -37,6 +123,8 @@ export function startServerInstance() {
 
 export function sendCommand(command: ICommand): boolean {
   if (!mcServer) return false;
+
+  console.log(command.toString());
 
   mcServer?.stdin?.write(command.toString() + "\n");
 

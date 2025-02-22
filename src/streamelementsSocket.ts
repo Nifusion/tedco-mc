@@ -76,12 +76,9 @@ class StreamElementsSocket {
       console.log(
         `${event.data.username} is raiding the stream with ${event.data.amount} viewers`
       );
-    } else {
-      console.log(
-        "WE DIDN'T COVER THIS EVENT WEEE WOOO WEE WOOO WEE WOOOO",
-        event
-      );
     }
+
+    
   };
 
   disconnect() {

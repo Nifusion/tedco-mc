@@ -10,6 +10,7 @@ class NBT {
   DeathLootTable: string = "";
   LeftHanded: boolean = false;
   CustomName?: string;
+  CustomNameVisible: boolean = true;
   IsBaby: boolean = false;
   active_effects?: PotionEffect[];
   HandDropChances?: HandDropChances = new HandDropChances();
@@ -219,6 +220,7 @@ export class SummonEntityCommand implements ICommand {
 
   constructor(executeAt: string, mob: MobIds) {
     this.executeAt = executeAt;
+    this.NBT.Tags.push(executeAt);
     this.mob = mob;
   }
 

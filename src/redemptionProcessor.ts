@@ -1,17 +1,26 @@
-import { coinFlip, processDirect } from "./MobProcessing/defaults";
-import { processHusk } from "./MobProcessing/husk";
-import { processPillager } from "./MobProcessing/pillager";
-import { processSkeleton } from "./MobProcessing/skeleton";
+import {
+  coinFlip,
+  processDirect,
+  rollDefaultArmor,
+  rollDefaultHandItems,
+  rollForBaby,
+  rollForLeftHanded,
+  rollForMainHand,
+} from "./MobProcessing/defaults";
 import {
   RandomHostileMobIds,
   RandomPassiveMobIds,
+  TippedArrowEffects,
 } from "./MobProcessing/summonsUtils";
-import { processZombie } from "./MobProcessing/zombie";
-import { processZombieVillager } from "./MobProcessing/zombie_villager";
-import { processZombifiedPiglin } from "./MobProcessing/zombified_piglin";
+import { addCommand } from "./commandQueue";
 import { DirectCommand } from "./directCommand";
 import { randomNumber } from "./mathUtils";
 import { sendCommand } from "./serverManager";
+import {
+  HandItem,
+  HandItems,
+  SummonEntityCommand,
+} from "./summonEntityCommand";
 import { SummonPassiveCommand } from "./summonPassiveCommand";
 import {
   randomCatVariant,
@@ -41,6 +50,7 @@ export const RedemptionDictionary: IRedemptionDictionary = {
   Random: (payload) => handleRandomHostileMob(payload),
   Passive: (payload) => handleRandomPassiveMob(payload),
   "Gib Hug Now Ted": (payload) => handleRandomHostileMob(payload),
+  "*": (payload) => handleRandomHostileMob(payload),
 };
 
 export function ProcessRedemption(payload: Redemption) {
@@ -48,6 +58,7 @@ export function ProcessRedemption(payload: Redemption) {
   const output = RedemptionDictionary[eventTitle];
 
   if (output) output(payload);
+  else RedemptionDictionary["*"](payload);
 
   return undefined;
 }
@@ -213,24 +224,89 @@ function processRolledHostileMob(
   mob: RandomHostileMobIds,
   payload: Redemption
 ) {
+  let summon = new SummonEntityCommand(payload.ign, mob);
+  summon.setCustomName(payload.namedAfter);
+
+  if (rollForBaby()) {
+    summon.setIsBaby();
+  }
+
   switch (mob) {
-    case "minecraft:zombie":
-      processZombie(payload);
-      break;
     case "minecraft:skeleton":
-      processSkeleton(payload);
+      //  80% chance to get a weapon
+      if (randomNumber(1, 100) <= 80) {
+        //  1 in 5 chance to get melee
+        if (randomNumber(1, 5) === 1) {
+          summon.withHandItems(
+            new HandItems().withMainHand(new HandItem(rollForMainHand()))
+          );
+        } else {
+          // else get ranged
+          summon.withHandItems(
+            new HandItems().withMainHand(new HandItem("minecraft:bow"))
+          );
+
+          if (randomNumber(1, 10) === 1) {
+            // get special arrows
+            if (randomNumber(1, 2) === 1)
+              summon.withHandItems(
+                new HandItems().withOffHand(
+                  new HandItem("minecraft:tipped_arrow").withTippedArrows(
+                    rollForPositiveTippedArrow()
+                  )
+                )
+              );
+            else
+              summon.withHandItems(
+                new HandItems().withOffHand(
+                  new HandItem("minecraft:tipped_arrow").withTippedArrows(
+                    rollForNegativeTippedArrow()
+                  )
+                )
+              );
+          } else {
+            //get regular arrows
+            //  no need to roll off hand
+          }
+        }
+      }
+
+      rollDefaultArmor(summon);
       break;
+    case "minecraft:zombie":
     case "minecraft:husk":
-      processHusk(payload);
-      break;
     case "minecraft:zombie_villager":
-      processZombieVillager(payload);
-      break;
     case "minecraft:zombified_piglin":
-      processZombifiedPiglin(payload);
+      processDefaultMelee(summon);
       break;
     case "minecraft:pillager":
-      processPillager(payload);
+      summon.withHandItems(
+        new HandItems().withMainHand(new HandItem("minecraft:crossbow"))
+      );
+
+      // get special arrows
+      if (randomNumber(1, 10) === 1) {
+        // get positive arrows
+        if (randomNumber(1, 2) === 1)
+          summon.withHandItems(
+            new HandItems().withOffHand(
+              new HandItem("minecraft:tipped_arrow").withTippedArrows(
+                rollForPositiveTippedArrow()
+              )
+            )
+          );
+        else
+          summon.withHandItems(
+            new HandItems().withOffHand(
+              new HandItem("minecraft:tipped_arrow").withTippedArrows(
+                rollForNegativeTippedArrow()
+              )
+            )
+          );
+      } else {
+        //get regular arrows
+        //  no need to roll off hand
+      }
       break;
     case "minecraft:endermite":
     case "minecraft:phantom":
@@ -242,13 +318,23 @@ function processRolledHostileMob(
     case "minecraft:spider":
     case "minecraft:wither":
     case "minecraft:warden":
-      processDirect(payload, mob);
       break;
     default:
       payload.namedAfter = "Nifusion sucks at coding";
       processDirect(payload, "minecraft:armor_stand");
       break;
   }
+
+  addCommand(summon);
+}
+
+function processDefaultMelee(summon: SummonEntityCommand) {
+  if (rollForLeftHanded()) {
+    summon.setLeftHanded();
+  }
+
+  rollDefaultHandItems(summon);
+  rollDefaultArmor(summon);
 }
 
 function processRolledPassiveMob(
@@ -319,5 +405,41 @@ function processRolledPassiveMob(
       break;
   }
 
-  sendCommand(summon);
+  addCommand(summon);
+}
+
+const PositiveTippedArrowEffects: TippedArrowEffects[] = [
+  "minecraft:regeneration",
+  "minecraft:strong_regeneration",
+  "minecraft:swiftness",
+  "minecraft:long_swiftness",
+  "minecraft:strength",
+  "minecraft:long_strength",
+  "minecraft:leaping",
+  "minecraft:long_leaping",
+  "minecraft:healing",
+  "minecraft:strong_healing",
+  "minecraft:long_night_vision",
+  "minecraft:long_water_breathing",
+  "minecraft:long_slow_falling",
+];
+
+const NegativeTippedArrowEffects: TippedArrowEffects[] = [
+  "minecraft:slowness",
+  "minecraft:turtle_master",
+  "minecraft:strong_turtle_master",
+  "minecraft:weakness",
+  "minecraft:water_breathing",
+  "minecraft:oozing",
+  "minecraft:weaving",
+];
+
+function rollForPositiveTippedArrow(): TippedArrowEffects {
+  const roll = randomNumber(1, PositiveTippedArrowEffects.length);
+  return PositiveTippedArrowEffects[roll - 1];
+}
+
+function rollForNegativeTippedArrow(): TippedArrowEffects {
+  const roll = randomNumber(1, NegativeTippedArrowEffects.length);
+  return NegativeTippedArrowEffects[roll - 1];
 }

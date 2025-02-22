@@ -1,6 +1,6 @@
 import { ICommand } from "./ICommand";
 import { randomNumberNoFloor } from "./mathUtils";
-import { MobIds, TippedArrowEffects } from "./MobProcessing/summonsUtils";
+import { MobIds } from "./MobProcessing/summonsUtils";
 import {
   catVariant,
   frogVariant,
@@ -53,6 +53,8 @@ export class SummonPassiveCommand implements ICommand {
 
   constructor(executeAt: string, mob: MobIds) {
     this.executeAt = executeAt;
+    this.NBT.Tags.push(executeAt);
+
     this.mob = mob;
   }
 

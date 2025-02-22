@@ -2,6 +2,8 @@ import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import { ProcessRedemption } from "./redemptionProcessor";
 import { ICommand } from "./ICommand";
+import { DirectCommand } from "./directCommand";
+import { pauseQueue, resumeQueue } from "./commandQueue";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
 const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
@@ -19,6 +21,56 @@ export function startServerInstance() {
     );
 
     mcServer?.stdout?.on("data", (data: string) => {
+      const commandPattern = /(\S+)\s+issued\s+server\s+command:\s+\/(\S+)/;
+      const match = String(data)
+        .replace("\r", "")
+        .replace("\n", "")
+        .match(commandPattern);
+
+      if (match) {
+        const playerName = match[1];
+        const commandName = match[2];
+        console.log(
+          `Detected ${commandName} command from player: ${playerName}`
+        );
+
+        if (commandName === "panic") {
+          console.log(`${playerName} issued the /panic command.`);
+          sendCommand(
+            new DirectCommand(
+              `execute as @e[tag=serverSpawned,tag=${playerName},distance=..128] at ${playerName} run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1}`
+            )
+          );
+
+          sendCommand(
+            new DirectCommand(
+              `execute as @e[type=minecraft:vex] at ${playerName} run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1}`
+            )
+          );
+
+          pauseQueue(playerName);
+        }
+
+        if (commandName === "unpanic") {
+          console.log(`${playerName} issued the /panic command.`);
+          sendCommand(
+            new DirectCommand(
+              `execute as @e[tag=serverSpawned,tag=${playerName}] at ${playerName} run data merge entity @s {NoAI:0, Silent:0, Invulnerable:0}`
+            )
+          );
+
+          sendCommand(
+            new DirectCommand(
+              `execute as @e[type=minecraft:vex] at ${playerName} run data merge entity @s {NoAI:0, Silent:0, Invulnerable:0}`
+            )
+          );
+
+          resumeQueue(playerName);
+        }
+
+        return;
+      }
+
       if (data.indexOf("!testheal") > -1) {
         const matchArray = String(data).match(/<([^>]+)>/g);
         const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
@@ -71,44 +123,6 @@ export function startServerInstance() {
         }
       }
 
-      if (data.indexOf("!testgift5") > -1) {
-        const matchArray = String(data).match(/<([^>]+)>/g);
-        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
-        if (matches.length >= 1) {
-          ProcessRedemption({
-            amount: 25,
-            eventTitle: "Random",
-            ign: matches[0],
-            namedAfter: "TestCommand",
-          });
-        }
-      }
-
-      if (data.indexOf("!testgift10") > -1) {
-        const matchArray = String(data).match(/<([^>]+)>/g);
-        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
-        if (matches.length >= 1) {
-          ProcessRedemption({
-            amount: 50,
-            eventTitle: "Random",
-            ign: matches[0],
-            namedAfter: "TestCommand",
-          });
-        }
-      }
-
-      if (data.indexOf("!testgift50") > -1) {
-        const matchArray = String(data).match(/<([^>]+)>/g);
-        const matches = matchArray ? matchArray.map((m) => m.slice(1, -1)) : [];
-        if (matches.length >= 1) {
-          ProcessRedemption({
-            amount: 250,
-            eventTitle: "Random",
-            ign: matches[0],
-            namedAfter: "TestCommand",
-          });
-        }
-      }
       console.error(`MC DATA: ${data.toString()}`);
     });
     mcServer?.stderr?.on("data", (data) => {

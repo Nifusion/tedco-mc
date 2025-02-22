@@ -16,6 +16,7 @@ import {
   getOAuthToken,
   subscribeToEventSub,
 } from "./subscriptionManager";
+import StreamElementsSocket from "./streamelementsSocket";
 
 const app = express();
 app.use(express.json());
@@ -42,13 +43,6 @@ function verifySignature(req: any) {
 
 app.get("/", (req, res) => {
   res.send("Why are you even here? Go away.");
-});
-
-app.get("/test", (req, res) => {
-  res.status(200).json({
-    message: "Success",
-    data: [1, 2, 3],
-  });
 });
 
 app.post("/" + DIRECT_SECRET_ENDPOINT, (req, res) => {
@@ -111,7 +105,7 @@ app.listen(API_PORT, async () => {
 
   startServerInstance();
 
-  //new StreamElementsSocket(process.env.JWT ?? "").connect();
+  new StreamElementsSocket(process.env.JWT ?? "").connect();
 
   rl.on("line", (input) => {
     switch (input) {

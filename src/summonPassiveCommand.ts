@@ -123,7 +123,7 @@ export class SummonPassiveCommand implements ICommand {
     return this;
   }
 
-  toString(): String {
+  toString(): string {
     const zOffset = randomNumberNoFloor(-1.5, 1.5);
     const xOffset = randomNumberNoFloor(-1.5, 1.5);
 

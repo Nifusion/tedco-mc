@@ -1,13 +1,13 @@
 import { ICommand } from "./ICommand";
 
 export class DirectCommand implements ICommand {
-  command: String;
+  command: string;
 
   constructor(command: string) {
     this.command = command;
   }
 
-  toString(): String {
+  toString(): string {
     return this.command;
   }
 }

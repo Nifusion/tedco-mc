@@ -7,19 +7,11 @@ import {
 } from "../summonEntityCommand";
 import { randomNumber } from "../mathUtils";
 import { Redemption } from "../redemptionProcessor";
-import { sendCommand } from "../serverManager";
 import {
   MobHoldingItem,
   MobIds,
   MobWearingItem
 } from "./summonsUtils";
-
-export function processDirect(payload: Redemption, mob: MobIds) {
-  let summon = new SummonEntityCommand(payload.ign, mob);
-  summon.setCustomName(payload.namedAfter);
-
-  sendCommand(summon);
-}
 
 export function coinFlip(): boolean {
   return randomNumber(1, 100) > 50;

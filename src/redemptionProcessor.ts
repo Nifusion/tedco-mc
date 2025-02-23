@@ -1,6 +1,5 @@
 import {
   coinFlip,
-  processDirect,
   rollDefaultArmor,
   rollDefaultHandItems,
   rollForBaby,
@@ -15,7 +14,6 @@ import {
 import { addCommand } from "./commandQueue";
 import { DirectCommand } from "./directCommand";
 import { randomNumber } from "./mathUtils";
-import { sendCommand } from "./serverManager";
 import {
   HandItem,
   HandItems,
@@ -190,29 +188,31 @@ function handleHealCluster(payload: Redemption) {
 
   const commandRoll = randomNumber(1, 101);
   if (commandRoll <= 10) {
-    sendCommand(new DirectCommand(`give ${ign} minecraft:golden_apple 1`));
+    addCommand(ign, new DirectCommand(`give ${ign} minecraft:golden_apple 1`));
   } else if (commandRoll <= 40) {
-    sendCommand(new DirectCommand(`smackdatass ${ign}`));
+    addCommand(ign, new DirectCommand(`smackdatass ${ign}`));
   } else if (commandRoll <= 80) {
     const count = 3;
-    sendCommand(new DirectCommand(`floatyheals ${ign} ${count}`));
+    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${count}`));
   } else if (commandRoll <= 100) {
     const count = 2;
-    sendCommand(new DirectCommand(`makeitrainheals ${ign} ${count}`));
+    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${count}`));
   } else if (commandRoll <= 101) {
-    sendCommand(
+    addCommand(
+      ign,
       new DirectCommand(`effect give ${ign} minecraft:health_boost 60 24 true`)
     );
 
-    sendCommand(new DirectCommand(`floatyheals ${ign} ${10}`));
-    sendCommand(new DirectCommand(`floatyheals ${ign} ${10}`));
-    sendCommand(new DirectCommand(`floatyheals ${ign} ${10}`));
+    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
+    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
+    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
 
-    sendCommand(new DirectCommand(`makeitrainheals ${ign} ${2}`));
-    sendCommand(new DirectCommand(`makeitrainheals ${ign} ${2}`));
-    sendCommand(new DirectCommand(`makeitrainheals ${ign} ${2}`));
+    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
+    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
+    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
 
-    sendCommand(
+    addCommand(
+      ign,
       new DirectCommand(
         `tellraw ${ign} "That's not supposed to be like that..."`
       )
@@ -321,11 +321,11 @@ function processRolledHostileMob(
       break;
     default:
       payload.namedAfter = "Nifusion sucks at coding";
-      processDirect(payload, "minecraft:armor_stand");
+      summon = new SummonEntityCommand(payload.ign, "minecraft:armor_stand");
       break;
   }
 
-  addCommand(summon);
+  addCommand(payload.ign, summon);
 }
 
 function processDefaultMelee(summon: SummonEntityCommand) {
@@ -341,7 +341,7 @@ function processRolledPassiveMob(
   mob: RandomPassiveMobIds,
   payload: Redemption
 ) {
-  const summon = new SummonPassiveCommand(payload.ign, mob);
+  let summon = new SummonPassiveCommand(payload.ign, mob);
   summon.setCustomName(payload.namedAfter);
 
   const isBaby = randomNumber(1, 25) === 1;
@@ -401,11 +401,12 @@ function processRolledPassiveMob(
       break;
     default:
       payload.namedAfter = "Nifusion sucks at coding";
-      processDirect(payload, "minecraft:armor_stand");
+      payload.namedAfter = "Nifusion sucks at coding";
+      summon = new SummonPassiveCommand(payload.ign, "minecraft:armor_stand");
       break;
   }
 
-  addCommand(summon);
+  addCommand(payload.ign, summon);
 }
 
 const PositiveTippedArrowEffects: TippedArrowEffects[] = [

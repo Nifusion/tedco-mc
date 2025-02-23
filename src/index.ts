@@ -6,17 +6,13 @@ require("dotenv").config();
 
 import { ProcessRedemption } from "./redemptionProcessor";
 import {
-  getServerProcess,
-  sendCommand,
-  startServerInstance,
-} from "./serverManager";
-import {
   deleteAllSubscriptions,
   getBroadcasterId,
   getOAuthToken,
   subscribeToEventSub,
 } from "./subscriptionManager";
 import StreamElementsSocket from "./streamelementsSocket";
+import ServerManager from "./serverManager";
 
 const app = express();
 app.use(express.json());
@@ -68,14 +64,12 @@ app.post("/api/webhook", (req, res) => {
       `Redemption "${req.body.event.reward.title}" received from ${req.body.event.user_name}`
     );
 
-    const command = ProcessRedemption({
+    ProcessRedemption({
       amount: 1,
       eventTitle: req.body.event.reward.title,
       ign: "Nifusion",
       namedAfter: req.body.event.user_name,
     });
-
-    if (command) sendCommand(command);
   }
 
   res.status(200).send("Event received");
@@ -103,21 +97,18 @@ app.listen(API_PORT, async () => {
   //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
   //await subscribeToEventSub("channel.cheer", token, broadcasterId);
 
-  startServerInstance();
+  ServerManager.getInstance().startServerInstance();
 
   new StreamElementsSocket(process.env.JWT ?? "").connect();
 
   rl.on("line", (input) => {
     switch (input) {
       case "start":
-        startServerInstance();
-        break;
-      case "pid":
-        console.log(getServerProcess()?.pid);
+        ServerManager.getInstance().startServerInstance();
         break;
 
       default:
-        getServerProcess()?.stdin?.write(input + "\n");
+        ServerManager.getInstance().sendCommand(input + "\n");
         break;
     }
   });

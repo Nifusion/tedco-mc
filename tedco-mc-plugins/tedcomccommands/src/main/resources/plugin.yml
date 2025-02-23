@@ -19,10 +19,6 @@ commands:
     description: Gives the player a firm, healing booty smack.
     usage: /smackdatass <player>
     permission: smackdatass.use
-  llamamad:
-    description: Summons an angry llama.
-    usage: /llamamad
-    permission: llamamad.use
 permissions:
   fling.use:
     description: Allows a player to use the fling command
@@ -36,6 +32,4 @@ permissions:
   smackdatass.use:
     description: Allows a player to use the smackdatass command
     default: op
-  llamamad.use:
-    description: Allows a player to use the llamamad command
     default: op

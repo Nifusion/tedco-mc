@@ -1,5 +1,10 @@
+import { randomUUID } from "crypto";
+import { DirectCommand } from "./directCommand";
 import { ICommand } from "./ICommand";
-import { randomNumberNoFloor } from "./mathUtils";
+import {
+  randomNumberNoFloor,
+  randomNumberNoFloorExclusionZoneWithExclusion,
+} from "./mathUtils";
 import { MobIds, TippedArrowEffects } from "./MobProcessing/summonsUtils";
 
 class NBT {
@@ -17,6 +22,16 @@ class NBT {
   ArmorDropChances?: ArmorDropChances = new ArmorDropChances();
   //  when wither spawns, you have 30 seconds (600 ticks) for it to charge up
   Invul: number = 600;
+
+  constructor(nifUUID: string) {
+    this.Tags.push(nifUUID);
+  }
+
+  toJSON(): any {
+    return { ...this, CustomName: `ø${this.CustomName}ø` };
+
+    return {};
+  }
 }
 
 class ItemComponents {
@@ -216,12 +231,18 @@ class PotionEffect {
 export class SummonEntityCommand implements ICommand {
   executeAt: String;
   mob: MobIds;
-  private NBT: NBT = new NBT();
+  secondary?: ICommand;
+  nifUUID: string = randomUUID().toLocaleLowerCase();
+  private NBT: NBT = new NBT(this.nifUUID);
 
   constructor(executeAt: string, mob: MobIds) {
     this.executeAt = executeAt;
     this.NBT.Tags.push(executeAt);
     this.mob = mob;
+  }
+
+  withSecondaryCommand(command: ICommand) {
+    this.secondary = command;
   }
 
   withArmor(armor: ArmorItems) {
@@ -263,7 +284,7 @@ export class SummonEntityCommand implements ICommand {
   }
 
   setCustomName(name: string) {
-    this.NBT.CustomName = name;
+    this.NBT.CustomName = String(name).replace(/\"g/, "");
     return this;
   }
 
@@ -273,8 +294,18 @@ export class SummonEntityCommand implements ICommand {
   }
 
   toString(): string {
-    const zOffset = randomNumberNoFloor(-1.5, 1.5);
-    const xOffset = randomNumberNoFloor(-1.5, 1.5);
+    const zOffset = randomNumberNoFloorExclusionZoneWithExclusion(
+      -1.5,
+      1.5,
+      -1,
+      1
+    );
+    const xOffset = randomNumberNoFloorExclusionZoneWithExclusion(
+      -1.5,
+      1.5,
+      -1,
+      1
+    );
 
     let command = `summon ${
       this.mob
@@ -289,6 +320,7 @@ export class SummonEntityCommand implements ICommand {
     return command
       .replace(/\\/g, ``)
       .replace(/"0f"/g, "0f")
-      .replace(/"1f"/g, "1f");
+      .replace(/"1f"/g, "1f")
+      .replace(/ø/g, '\\"');
   }
 }

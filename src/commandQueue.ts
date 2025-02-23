@@ -1,6 +1,7 @@
 import { DirectCommand } from "./directCommand";
 import { ICommand } from "./ICommand";
 import ServerManager from "./serverManager";
+import { SummonEntityCommand } from "./summonEntityCommand";
 
 interface PlayerCommandQueue {
   queue: ICommand[];
@@ -44,6 +45,14 @@ export function start(playerName: string) {
       if (command)
         try {
           ServerManager.getInstance().sendCommand(command);
+          if (command instanceof SummonEntityCommand) {
+            const sec = command as SummonEntityCommand;
+            if (sec.secondary)
+              setTimeout(() => {
+                if (sec.secondary)
+                  ServerManager.getInstance().sendCommand(sec.secondary);
+              }, 100);
+          }
         } catch (error) {
           console.error("Error processing command:", command, error);
         }

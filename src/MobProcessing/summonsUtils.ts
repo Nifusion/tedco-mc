@@ -7,6 +7,7 @@ export type RandomHostileMobIds =
   | "minecraft:evoker"
   | "minecraft:guardian" //on a chicken
   | "minecraft:husk"
+  | "minecraft:llama" //on a chicken
   | "minecraft:phantom"
   | "minecraft:pillager"
   | "minecraft:skeleton"

@@ -41,6 +41,7 @@ export type Redemption = {
   ign: string;
   namedAfter: string;
   amount: number;
+  force?: string;
 };
 
 export const RedemptionDictionary: IRedemptionDictionary = {
@@ -75,46 +76,41 @@ function handleRandomHostileMob(payload: Redemption) {
     const commandRoll = randomNumber(1, 10001);
 
     let rolledMob: RandomHostileMobIds = "minecraft:armor_stand";
+    let possibleMobs: RandomHostileMobIds[] = ["minecraft:armor_stand"];
 
-    if (commandRoll <= 6000) {
-      const possibleMobs: RandomHostileMobIds[] = [
+    if (commandRoll <= 6500) {
+      possibleMobs = [
         "minecraft:zombie",
         "minecraft:skeleton",
         "minecraft:spider",
         "minecraft:husk",
-        "minecraft:endermite",
         "minecraft:zombie_villager",
         "minecraft:zombified_piglin",
       ];
-
-      rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
-    } else if (commandRoll <= 8500) {
-      const possibleMobs: RandomHostileMobIds[] = [
-        "minecraft:phantom",
+    } else if (commandRoll <= 9500) {
+      possibleMobs = [
         "minecraft:breeze",
         "minecraft:pillager",
-      ];
-
-      rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
-    } else if (commandRoll <= 10000) {
-      const possibleMobs: RandomHostileMobIds[] = [
+        "minecraft:endermite",
         "minecraft:blaze",
+        "minecraft:llama",
+      ];
+    } else if (commandRoll <= 10000) {
+      possibleMobs = [
         "minecraft:evoker",
         "minecraft:guardian",
         "minecraft:witch",
+        "minecraft:phantom",
+        "minecraft:enderman",
       ];
-
-      rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
     } else if (commandRoll <= 10001) {
-      const possibleMobs: RandomHostileMobIds[] = [
-        "minecraft:wither",
-        "minecraft:warden",
-      ];
-
-      rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
+      possibleMobs = ["minecraft:wither", "minecraft:warden"];
     }
+    rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
 
     console.log("Rolled Mob", rolledMob);
+
+    if (payload.force) rolledMob = payload.force as RandomHostileMobIds;
 
     processRolledHostileMob(rolledMob, payload);
   }
@@ -176,6 +172,8 @@ function handleRandomPassiveMob(payload: Redemption) {
     }
 
     rolledMob = possibleMobs[Math.floor(Math.random() * possibleMobs.length)];
+
+    if (payload.force) rolledMob = payload.force as RandomPassiveMobIds;
 
     console.log("Rolled Mob", rolledMob);
 
@@ -273,11 +271,25 @@ function processRolledHostileMob(
 
       rollDefaultArmor(summon);
       break;
+    case "minecraft:zombified_piglin":
+      summon.withSecondaryCommand(
+        new DirectCommand(
+          `damage @e[tag=${summon.nifUUID},limit=1] 0.01 minecraft:player_attack by ${payload.ign}`
+        )
+      );
     case "minecraft:zombie":
     case "minecraft:husk":
     case "minecraft:zombie_villager":
-    case "minecraft:zombified_piglin":
       processDefaultMelee(summon);
+      break;
+    case "minecraft:warden":
+    case "minecraft:enderman":
+    case "minecraft:llama":
+      summon.withSecondaryCommand(
+        new DirectCommand(
+          `damage @e[tag=${summon.nifUUID},limit=1] 0.01 minecraft:player_attack by ${payload.ign}`
+        )
+      );
       break;
     case "minecraft:pillager":
       summon.withHandItems(
@@ -317,7 +329,6 @@ function processRolledHostileMob(
     case "minecraft:witch":
     case "minecraft:spider":
     case "minecraft:wither":
-    case "minecraft:warden":
       break;
     default:
       payload.namedAfter = "Nifusion sucks at coding";

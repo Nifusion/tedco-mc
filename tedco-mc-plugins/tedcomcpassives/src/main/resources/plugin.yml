@@ -1,0 +1,4 @@
+name: tedcomcpassives
+version: '1.0-SNAPSHOT'
+main: dev.nifusion.tedcomcpassives.Tedcomcpassives
+api-version: '1.21'

@@ -23,7 +23,7 @@ class NBT {
   ArmorDropChances?: ArmorDropChances = new ArmorDropChances();
   //  when wither spawns, you have 30 seconds (600 ticks) for it to charge up
   Invul: number = 600;
-
+  
   constructor(nifUUID: string) {
     this.Tags.push(nifUUID);
   }
@@ -247,13 +247,13 @@ export class SummonEntityCommand implements ICommand {
   type: CommandType = "SummonRandomEntity";
 
   constructor(executeAt: string, mob: MobIds) {
-    this.executeAt = executeAt;
-    this.NBT.Tags.push(executeAt);
+    this.executeAt = executeAt.toLowerCase();
+    this.NBT.Tags.push(executeAt.toLowerCase());
     this.mob = mob;
   }
 
   makeThemOneShot() {
-    this.NBT.Health = "0.1";
+    this.NBT.Health = "1";
   }
 
   withSecondaryCommand(command: ICommand) {

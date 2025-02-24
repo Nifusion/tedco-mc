@@ -15,7 +15,11 @@ import {
 import { AttributeCommand } from "./attributeCommand";
 import { addCommand } from "./commandQueue";
 import { DirectCommand } from "./directCommand";
-import { randomNumber, randomNumberNoFloor } from "./mathUtils";
+import {
+  randomNumber,
+  randomNumberNoFloor,
+  randomNumberNoFloorExclusionZoneWithExclusion,
+} from "./mathUtils";
 import PlayerConnectionManager from "./playerConnectionManager";
 import playerSubscriptionManager from "./playerSubscriptionManager";
 import {
@@ -59,6 +63,7 @@ export const RedemptionDictionary: IRedemptionDictionary = {
   Passive: (payload) => handleRandomPassiveMob(payload),
   BigTed: (payload) => handleBigTed(payload),
   Fling: (payload) => handleFling(payload),
+  feedme: (payload) => handleFeedMe(payload),
   "Gib Hug Now Ted": (payload) => handleRandomHostileMob(payload),
   "*": (payload) => handleRandomHostileMob(payload),
 };
@@ -75,13 +80,13 @@ export function ProcessRedemption(payload: Redemption) {
 
   whoToHit.forEach((inGameVictim) => {
     const target = whoIsOnline.get(inGameVictim);
-    if (target && target.isOnline) Process(inGameVictim);
+    if (target && target.isOnline) Process(inGameVictim.toLowerCase());
     else {
       console.log(`${inGameVictim} is not online to receive the redemption`);
     }
   });
 
-  if (payload.source === "self" && payload.selfIGN) Process(payload.selfIGN);
+  if (payload.source === "self" && payload.selfIGN) Process(payload.selfIGN.toLowerCase());
 
   return undefined;
 
@@ -137,6 +142,7 @@ function handleRandomHostileMob(payload: RedemptionProcessor) {
         "minecraft:breeze",
         "minecraft:pillager",
         "minecraft:endermite",
+        "minecraft:silverfish",
         "minecraft:blaze",
         "minecraft:llama",
       ];
@@ -273,10 +279,25 @@ function handleFling(payload: RedemptionProcessor) {
   return new CommandCluster(new DirectCommand(`fling ${ign} ${flingPower}`));
 }
 
+function handleFeedMe(payload: RedemptionProcessor) {
+  const { ign } = payload;
+
+  const food = randomNumber(2, 6);
+
+  return new CommandCluster(new DirectCommand(`feedme ${ign} ${food}`));
+
+  
+}
+
 function handleBigTed(payload: RedemptionProcessor) {
   const { ign } = payload;
 
-  const randomRoll = randomNumberNoFloor(0.25, 2.5);
+  const randomRoll = randomNumberNoFloorExclusionZoneWithExclusion(
+    0.25,
+    2.5,
+    0.75,
+    1.5
+  );
   console.log(`Big Ted changing sizes to ${randomRoll * 2} blocks tall.`);
 
   return new CommandCluster(
@@ -397,9 +418,10 @@ function processRolledHostileMob(
     case "minecraft:witch":
     case "minecraft:spider":
     case "minecraft:wither":
+    case "minecraft:silverfish":
       break;
     default:
-      payload.namedAfter = "Nifusion sucks at coding";
+      summon.setCustomName("Nifusion sucks at coding");
       summon = new SummonEntityCommand(payload.ign, "minecraft:armor_stand");
       break;
   }

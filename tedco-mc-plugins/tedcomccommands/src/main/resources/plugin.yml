@@ -19,6 +19,10 @@ commands:
     description: Gives the player a firm, healing booty smack.
     usage: /smackdatass <player>
     permission: smackdatass.use
+  feedme:
+    description: Feeds the player a little munchies
+    usage: /feedme <player> <power>
+    permission: smackdatass.use
 permissions:
   fling.use:
     description: Allows a player to use the fling command
@@ -32,4 +36,6 @@ permissions:
   smackdatass.use:
     description: Allows a player to use the smackdatass command
     default: op
+  feedme.use:
+    description: Allows a player to use the feedme command
     default: op

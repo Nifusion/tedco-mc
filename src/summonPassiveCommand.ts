@@ -54,8 +54,8 @@ export class SummonPassiveCommand implements ICommand {
   type: CommandType = "SummonRandomPassive";
 
   constructor(executeAt: string, mob: MobIds) {
-    this.executeAt = executeAt;
-    this.NBT.Tags.push(executeAt);
+    this.executeAt = executeAt.toLowerCase();
+    this.NBT.Tags.push(executeAt.toLowerCase());
 
     this.mob = mob;
   }

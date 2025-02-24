@@ -38,14 +38,6 @@ public class MakeItRainHealCloudCommand implements CommandExecutor, Listener {
             count = Integer.parseInt(args[1]);
         }
 
-        String redeemer = null;
-        if (args.length == 3) {
-            redeemer = args[2];
-        }
-
-        if (redeemer != null)
-            player.sendMessage(redeemer + " is making it raaaiiinnn!");
-
         World world = player.getWorld();
 
         for (int i = 0; i < count; i++) {
@@ -62,7 +54,6 @@ public class MakeItRainHealCloudCommand implements CommandExecutor, Listener {
 
             Location dropLocation = player.getLocation().clone().add(offsetX, offsetY, offsetZ);
 
-            // Create a lingering health potion item
             ItemStack potion = new ItemStack(Material.LINGERING_POTION);
             PotionMeta potionMeta = (PotionMeta) potion.getItemMeta();
             if (potionMeta != null) {
@@ -70,11 +61,9 @@ public class MakeItRainHealCloudCommand implements CommandExecutor, Listener {
                 potion.setItemMeta(potionMeta);
             }
 
-            // Spawn the thrown potion entity
             ThrownPotion thrownPotion = world.spawn(dropLocation, ThrownPotion.class);
             thrownPotion.setItem(potion);
 
-            // Set the potion to fall straight down
             thrownPotion.setVelocity(new Vector(0, -0.5, 0));
         }
         return true;

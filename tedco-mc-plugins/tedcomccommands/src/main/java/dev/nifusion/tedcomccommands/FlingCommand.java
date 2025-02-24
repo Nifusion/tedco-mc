@@ -27,7 +27,6 @@ public class FlingCommand implements CommandExecutor, Listener {
     private final Plugin plugin;
 
     private static final double RANDOM_SCALING_FACTOR = 0.3;
-    private static final double Y_POSITION_THRESHOLD = 0.1;
     private final Random random = new Random();
 
     private final Set<Player> playersWithNoFallDamage = new HashSet<>();
@@ -95,10 +94,9 @@ public class FlingCommand implements CommandExecutor, Listener {
 
     @EventHandler
     public void onElytraActivate(EntityToggleGlideEvent event) {
-        // Check if the entity is a player and if they are activating their Elytra
         if (event.getEntity() instanceof Player player && event.isGliding()) {
             if (playersWithNoFallDamage.contains(player)) {
-                playersWithNoFallDamage.remove(player); // Remove fall damage cancellation
+                playersWithNoFallDamage.remove(player);
                 plugin.getLogger().info(player.getName() + " has activated their elytra; fall damage cancellation removed.");
             }
         }

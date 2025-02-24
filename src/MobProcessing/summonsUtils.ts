@@ -7,9 +7,10 @@ export type RandomHostileMobIds =
   | "minecraft:evoker"
   | "minecraft:guardian" //on a chicken
   | "minecraft:husk"
-  | "minecraft:llama" //on a chicken
+  | "minecraft:llama"
   | "minecraft:phantom"
   | "minecraft:pillager"
+  | "minecraft:silverfish"
   | "minecraft:skeleton"
   | "minecraft:spider"
   | "minecraft:warden"
@@ -94,6 +95,7 @@ export type MobIds =
   | "minecraft:polar_bear"
   | "minecraft:rabbit"
   | "minecraft:ravager"
+  | "minecraft:silverfish"
   | "minecraft:sheep"
   | "minecraft:shulker"
   | "minecraft:skeleton"

@@ -35,9 +35,6 @@ class ServerManager {
   private static instance: ServerManager | null = null;
   private mcServer: ChildProcess | null = null;
 
-  private commandPattern =
-    /(\S+)\s+issued\s+server\s+command:\s+\/(\S+)(?:\s+(--\S+.*))?/;
-
   private exclamationPattern = /(\<([^>]+)\>)?\s*!(\w+)(.*)/;
 
   private constructor() {}
@@ -71,76 +68,88 @@ class ServerManager {
         console.log(data.toString());
         const { player, command, staticArgs, flags } = match;
 
-        console.log(`Detected ${command} command from player: ${player}`, {
-          match,
-        });
+        const lowerCasePlayer = player.toLowerCase();
+
+        console.log(
+          `Detected ${command} command from player: ${lowerCasePlayer}`,
+          {
+            match,
+          }
+        );
 
         if (command === "panic") {
-          console.log(`${player} issued the /panic command.`);
-          this.handlePanic(player);
+          console.log(`${lowerCasePlayer} issued the /panic command.`);
+          this.handlePanic(lowerCasePlayer);
         }
 
         if (command === "unpanic") {
-          console.log(`${player} issued the /unpanic command.`);
-          this.handleUnpanic(player);
+          console.log(`${lowerCasePlayer} issued the /unpanic command.`);
+          this.handleUnpanic(lowerCasePlayer);
         }
 
         if (command === "wipe") {
-          console.log(`${player} issued the /wipe command.`);
-          this.handleWipe(player);
+          console.log(`${lowerCasePlayer} issued the /wipe command.`);
+          this.handleWipe(lowerCasePlayer);
         }
 
         if (command === "nsac") {
-          console.log(`${player} thinks Nifusion sucks at coding.`);
+          console.log(`${lowerCasePlayer} thinks Nifusion sucks at coding.`);
 
           this.sendCommand(
             new DirectCommand(
-              `execute as ${player} run say Nifusion sucks at coding. Coming soon...`
+              `execute as ${lowerCasePlayer} run say Nifusion sucks at coding. Coming soon...`
             )
           );
         }
 
         if (command === "normalize") {
-          console.log(`${player} issued the /normalize command.`);
+          console.log(`${lowerCasePlayer} issued the /normalize command.`);
           if (
             flags.hasOwnProperty("force") ||
             flags.hasOwnProperty("f") ||
             staticArgs.find((s) => s === "force")
           ) {
             this.sendCommand(
-              new AttributeCommand(player).resetAttribute("minecraft:scale")
+              new AttributeCommand(lowerCasePlayer).resetAttribute(
+                "minecraft:scale"
+              )
             );
           } else {
             //  forcing it through the queue clears out the reset timer from the last time
             addCommand(
-              player,
-              new AttributeCommand(player).resetAttribute("minecraft:scale")
+              lowerCasePlayer,
+              new AttributeCommand(lowerCasePlayer).resetAttribute(
+                "minecraft:scale"
+              )
             );
           }
         }
 
         if (command === "subscribe") {
-          console.log(`${player} issued the /subscribe command.`, staticArgs);
+          console.log(
+            `${lowerCasePlayer} issued the /subscribe command.`,
+            staticArgs
+          );
 
           if (staticArgs && staticArgs.length === 1) {
             const streamer = staticArgs[0];
             const res = playerSubscriptionManager
               .getInstance()
-              .subscribe(player, streamer);
+              .subscribe(lowerCasePlayer, streamer);
 
             if (res.success)
               this.sayToPlayer(
-                player,
+                lowerCasePlayer,
                 `Successfully subscribed to ${streamer}`
               );
             else
               this.sayToPlayer(
-                player,
+                lowerCasePlayer,
                 `Unable to subscribe to ${streamer}. [${res.reason}]`
               );
           } else {
             this.sayToPlayer(
-              player,
+              lowerCasePlayer,
               `/subscribe TargetStreamer`,
               MinecraftColor.Red
             );
@@ -148,30 +157,31 @@ class ServerManager {
         }
 
         if (command === "unsubscribe") {
-          console.log(`${player} issued the /unsubscribe command.`);
+          console.log(`${lowerCasePlayer} issued the /unsubscribe command.`);
 
           const res = playerSubscriptionManager
             .getInstance()
-            .unsubscribe(player);
+            .unsubscribe(lowerCasePlayer);
 
-          if (res) this.sayToPlayer(player, "Successfully unsubscribed");
-          else this.sayToPlayer(player, "Something went wrong.");
+          if (res)
+            this.sayToPlayer(lowerCasePlayer, "Successfully unsubscribed");
+          else this.sayToPlayer(lowerCasePlayer, "Something went wrong.");
         }
 
         if (command === "currentsub") {
           const res = playerSubscriptionManager
             .getInstance()
-            .getSubscription(player);
+            .getSubscription(lowerCasePlayer);
 
           if (res && res.streamer) {
             this.sayToPlayer(
-              player,
+              lowerCasePlayer,
               `You are currently subscribed to events from ${res.streamer}'s stream. Enjoy the chaos.`,
               MinecraftColor.Green
             );
           } else {
             this.sayToPlayer(
-              player,
+              lowerCasePlayer,
               `You are not currently subscribed to any streamer. Enjoy the silence.`
             );
           }
@@ -269,6 +279,17 @@ class ServerManager {
             force: args.force,
           });
         }
+
+        if (command === "testfeedme") {
+          ProcessRedemption({
+            amount: 0,
+            eventTitle: "feedme",
+            source: args.source ?? "self",
+            selfIGN: player,
+            namedAfter: args.name ?? "TestCommand",
+            force: args.force,
+          });
+        }
       }
 
       console.error(`MC DATA: ${data.toString()}`);
@@ -310,9 +331,8 @@ class ServerManager {
   ): boolean {
     if (!this.mcServer) return false;
 
-    // Apply the color code if provided, prepend it to the message with §
     if (color) {
-      message = `§${color}${message}`; // Apply the color code to the message
+      message = `§${color}${message}`;
     }
 
     this.mcServer.stdin?.write(
@@ -389,7 +409,7 @@ class ServerManager {
           ((value.startsWith('"') && value.endsWith('"')) ||
             (value.startsWith("'") && value.endsWith("'")))
         ) {
-          value = value.slice(1, -1); // Remove first and last character (quotes)
+          value = value.slice(1, -1);
         }
 
         args[key] = value === undefined ? undefined : value;

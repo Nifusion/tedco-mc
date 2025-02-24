@@ -21,20 +21,12 @@ public class SmackDatAssCommand implements CommandExecutor {
             return false;
         }
 
-        String redeemer = null;
-        if (args.length == 2) {
-            redeemer = args[1];
-        }
-
-        if (redeemer != null)
-            player.sendMessage("Oh behave, " + redeemer + "!");
-
         Location loc = player.getLocation();
 
-        player.getWorld().playSound(loc, Sound.ENTITY_PLAYER_HURT, 1.0f, 1.0f); // Play hurt sound
+        player.getWorld().playSound(loc, Sound.ENTITY_PLAYER_HURT, 1.0f, 1.0f);
         Utils.spawnHeartParticles(player, 3);
 
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 1)); // Instant Heal
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH, 1, 1));
 
         player.damage(0.01);
 

@@ -58,6 +58,7 @@ export const RedemptionDictionary: IRedemptionDictionary = {
   Random: (payload) => handleRandomHostileMob(payload),
   Passive: (payload) => handleRandomPassiveMob(payload),
   BigTed: (payload) => handleBigTed(payload),
+  Fling: (payload) => handleFling(payload),
   "Gib Hug Now Ted": (payload) => handleRandomHostileMob(payload),
   "*": (payload) => handleRandomHostileMob(payload),
 };
@@ -262,6 +263,14 @@ function handleHealCluster(payload: RedemptionProcessor) {
       ),
     ]);
   }
+}
+
+function handleFling(payload: RedemptionProcessor) {
+  const { ign } = payload;
+
+  const flingPower = randomNumberNoFloor(1, 2.5);
+
+  return new CommandCluster(new DirectCommand(`fling ${ign} ${flingPower}`));
 }
 
 function handleBigTed(payload: RedemptionProcessor) {

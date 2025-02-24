@@ -107,7 +107,6 @@ class ServerManager {
             flags.hasOwnProperty("f") ||
             staticArgs.find((s) => s === "force")
           ) {
-            console.log("forcing");
             this.sendCommand(
               new AttributeCommand(player).resetAttribute("minecraft:scale")
             );
@@ -257,6 +256,17 @@ class ServerManager {
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
+          });
+        }
+
+        if (command === "testfling") {
+          ProcessRedemption({
+            amount: 0,
+            eventTitle: "Fling",
+            source: args.source ?? "self",
+            selfIGN: player,
+            namedAfter: args.name ?? "TestCommand",
+            force: args.force,
           });
         }
       }

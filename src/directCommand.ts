@@ -1,7 +1,8 @@
-import { ICommand } from "./ICommand";
+import { CommandType, ICommand } from "./ICommand";
 
 export class DirectCommand implements ICommand {
   command: string;
+  type: CommandType = "Direct";
 
   constructor(command: string) {
     this.command = command;

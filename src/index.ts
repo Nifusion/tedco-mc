@@ -13,6 +13,7 @@ import {
 } from "./subscriptionManager";
 import StreamElementsSocket from "./streamelementsSocket";
 import ServerManager from "./serverManager";
+import PlayerConnectionManager from "./playerConnectionManager";
 
 const app = express();
 app.use(express.json());
@@ -61,13 +62,13 @@ app.post("/api/webhook", (req, res) => {
 
   if (req.body) {
     console.log(
-      `Redemption "${req.body.event.reward.title}" received from ${req.body.event.user_name}`
+      `Redemption "${req.body.event.reward.title}" received from ${req.body.event.user_name} in ${req.body.event.broadcaster_user_name} stream`
     );
 
     ProcessRedemption({
       amount: 1,
+      source: req.body.event.broadcaster_user_name,
       eventTitle: req.body.event.reward.title,
-      ign: "Nifusion",
       namedAfter: req.body.event.user_name,
     });
   }
@@ -97,6 +98,7 @@ app.listen(API_PORT, async () => {
   //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
   //await subscribeToEventSub("channel.cheer", token, broadcasterId);
 
+  PlayerConnectionManager.getInstance().wipeActivePlayersTable();
   ServerManager.getInstance().startServerInstance();
 
   new StreamElementsSocket(process.env.JWT ?? "").connect();

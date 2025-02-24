@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { DirectCommand } from "./directCommand";
-import { ICommand } from "./ICommand";
+import { CommandType, ICommand } from "./ICommand";
 import {
   randomNumberNoFloor,
   randomNumberNoFloorExclusionZoneWithExclusion,
@@ -11,6 +11,7 @@ class NBT {
   ArmorItems: ArmorItems = new ArmorItems();
   HandItems: HandItems = new HandItems();
   Tags: string[] = ["serverSpawned"];
+  Health?: string;
   PersistenceRequired: boolean = true;
   DeathLootTable: string = "";
   LeftHanded: boolean = false;
@@ -28,9 +29,17 @@ class NBT {
   }
 
   toJSON(): any {
-    return { ...this, CustomName: `ø${this.CustomName}ø` };
+    const result = {
+      ...this,
+      CustomName: `ø${this.CustomName}ø`,
+      Health: this.Health + "f",
+    };
 
-    return {};
+    if (this.Health) {
+      result.Health = `${this.Health}f`;
+    }
+
+    return result;
   }
 }
 
@@ -235,10 +244,16 @@ export class SummonEntityCommand implements ICommand {
   nifUUID: string = randomUUID().toLocaleLowerCase();
   private NBT: NBT = new NBT(this.nifUUID);
 
+  type: CommandType = "SummonRandomEntity";
+
   constructor(executeAt: string, mob: MobIds) {
     this.executeAt = executeAt;
     this.NBT.Tags.push(executeAt);
     this.mob = mob;
+  }
+
+  makeThemOneShot() {
+    this.NBT.Health = "0.1";
   }
 
   withSecondaryCommand(command: ICommand) {

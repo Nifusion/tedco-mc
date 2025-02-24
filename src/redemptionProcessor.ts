@@ -1,3 +1,4 @@
+import { CommandCluster } from "./ICommand";
 import {
   coinFlip,
   rollDefaultArmor,
@@ -11,9 +12,12 @@ import {
   RandomPassiveMobIds,
   TippedArrowEffects,
 } from "./MobProcessing/summonsUtils";
+import { AttributeCommand } from "./attributeCommand";
 import { addCommand } from "./commandQueue";
 import { DirectCommand } from "./directCommand";
-import { randomNumber } from "./mathUtils";
+import { randomNumber, randomNumberNoFloor } from "./mathUtils";
+import PlayerConnectionManager from "./playerConnectionManager";
+import playerSubscriptionManager from "./playerSubscriptionManager";
 import {
   HandItem,
   HandItems,
@@ -33,36 +37,75 @@ import {
 } from "./variants";
 
 interface IRedemptionDictionary {
-  [key: string]: (payload: Redemption) => void;
+  [key: string]: (payload: RedemptionProcessor) => CommandCluster | undefined;
 }
 
 export type Redemption = {
+  source: string;
+  selfIGN?: string;
   eventTitle: string;
-  ign: string;
   namedAfter: string;
   amount: number;
   force?: string;
+};
+
+export type RedemptionProcessor = Redemption & {
+  ign: string;
 };
 
 export const RedemptionDictionary: IRedemptionDictionary = {
   Heal: (payload) => handleHealCluster(payload),
   Random: (payload) => handleRandomHostileMob(payload),
   Passive: (payload) => handleRandomPassiveMob(payload),
+  BigTed: (payload) => handleBigTed(payload),
   "Gib Hug Now Ted": (payload) => handleRandomHostileMob(payload),
   "*": (payload) => handleRandomHostileMob(payload),
 };
 
 export function ProcessRedemption(payload: Redemption) {
-  const { eventTitle } = payload;
+  const { eventTitle, source } = payload;
   const output = RedemptionDictionary[eventTitle];
 
-  if (output) output(payload);
-  else RedemptionDictionary["*"](payload);
+  const whoToHit = playerSubscriptionManager
+    .getInstance()
+    .getPlayersForStreamer(source);
+
+  const whoIsOnline = PlayerConnectionManager.getInstance().getActivePlayers();
+
+  whoToHit.forEach((inGameVictim) => {
+    const target = whoIsOnline.get(inGameVictim);
+    if (target && target.isOnline) Process(inGameVictim);
+    else {
+      console.log(`${inGameVictim} is not online to receive the redemption`);
+    }
+  });
+
+  if (payload.source === "self" && payload.selfIGN) Process(payload.selfIGN);
 
   return undefined;
+
+  function Process(inGameVictim: string) {
+    let processPayload: RedemptionProcessor = {
+      ...payload,
+      ign: inGameVictim,
+    };
+
+    let commandCluster: CommandCluster = [];
+    if (output) {
+      const _out = output(processPayload);
+      if (_out) commandCluster.push(..._out);
+    } else {
+      const _out = RedemptionDictionary["*"](processPayload);
+      if (_out) commandCluster.push(..._out);
+    }
+
+    commandCluster.forEach((command) => {
+      addCommand(inGameVictim, command);
+    });
+  }
 }
 
-function handleRandomHostileMob(payload: Redemption) {
+function handleRandomHostileMob(payload: RedemptionProcessor) {
   const { amount, namedAfter, ign } = payload;
 
   console.log(
@@ -72,6 +115,7 @@ function handleRandomHostileMob(payload: Redemption) {
   //  take USD amount and floor it to nearest whole number
   const numberOfRolls = Math.floor(amount);
 
+  const cluster = new CommandCluster();
   for (let i = 0; i < numberOfRolls; i++) {
     const commandRoll = randomNumber(1, 10001);
 
@@ -112,11 +156,12 @@ function handleRandomHostileMob(payload: Redemption) {
 
     if (payload.force) rolledMob = payload.force as RandomHostileMobIds;
 
-    processRolledHostileMob(rolledMob, payload);
+    cluster.push(processRolledHostileMob(rolledMob, payload));
   }
+  return cluster;
 }
 
-function handleRandomPassiveMob(payload: Redemption) {
+function handleRandomPassiveMob(payload: RedemptionProcessor) {
   const { amount, namedAfter, ign } = payload;
 
   console.log(
@@ -125,6 +170,7 @@ function handleRandomPassiveMob(payload: Redemption) {
 
   //  take USD amount and floor it to nearest whole number
   const numberOfRolls = Math.floor(amount);
+  const cluster = new CommandCluster();
 
   for (let i = 0; i < numberOfRolls; i++) {
     const commandRoll = randomNumber(1, 101);
@@ -177,50 +223,61 @@ function handleRandomPassiveMob(payload: Redemption) {
 
     console.log("Rolled Mob", rolledMob);
 
-    processRolledPassiveMob(rolledMob, payload);
+    cluster.push(processRolledPassiveMob(rolledMob, payload));
   }
+  return cluster;
 }
 
-function handleHealCluster(payload: Redemption) {
+function handleHealCluster(payload: RedemptionProcessor) {
   const { ign } = payload;
 
   const commandRoll = randomNumber(1, 101);
   if (commandRoll <= 10) {
-    addCommand(ign, new DirectCommand(`give ${ign} minecraft:golden_apple 1`));
+    return new CommandCluster(
+      new DirectCommand(`give ${ign} minecraft:golden_apple 1`)
+    );
   } else if (commandRoll <= 40) {
-    addCommand(ign, new DirectCommand(`smackdatass ${ign}`));
+    return new CommandCluster(new DirectCommand(`smackdatass ${ign}`));
   } else if (commandRoll <= 80) {
     const count = 3;
-    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${count}`));
+    return new CommandCluster([
+      new DirectCommand(`floatyheals ${ign} ${count}`),
+    ]);
   } else if (commandRoll <= 100) {
     const count = 2;
-    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${count}`));
+    return new CommandCluster([
+      new DirectCommand(`makeitrainheals ${ign} ${count}`),
+    ]);
   } else if (commandRoll <= 101) {
-    addCommand(
-      ign,
-      new DirectCommand(`effect give ${ign} minecraft:health_boost 60 24 true`)
-    );
-
-    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
-    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
-    addCommand(ign, new DirectCommand(`floatyheals ${ign} ${10}`));
-
-    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
-    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
-    addCommand(ign, new DirectCommand(`makeitrainheals ${ign} ${2}`));
-
-    addCommand(
-      ign,
+    return new CommandCluster([
+      new DirectCommand(`effect give ${ign} minecraft:health_boost 60 24 true`),
+      new DirectCommand(`floatyheals ${ign} ${10}`),
+      new DirectCommand(`floatyheals ${ign} ${10}`),
+      new DirectCommand(`floatyheals ${ign} ${10}`),
+      new DirectCommand(`makeitrainheals ${ign} ${2}`),
+      new DirectCommand(`makeitrainheals ${ign} ${2}`),
+      new DirectCommand(`makeitrainheals ${ign} ${2}`),
       new DirectCommand(
         `tellraw ${ign} "That's not supposed to be like that..."`
-      )
-    );
+      ),
+    ]);
   }
+}
+
+function handleBigTed(payload: RedemptionProcessor) {
+  const { ign } = payload;
+
+  const randomRoll = randomNumberNoFloor(0.25, 2.5);
+  console.log(`Big Ted changing sizes to ${randomRoll * 2} blocks tall.`);
+
+  return new CommandCluster(
+    new AttributeCommand(ign).setAttribute("minecraft:scale", randomRoll)
+  );
 }
 
 function processRolledHostileMob(
   mob: RandomHostileMobIds,
-  payload: Redemption
+  payload: RedemptionProcessor
 ) {
   let summon = new SummonEntityCommand(payload.ign, mob);
   summon.setCustomName(payload.namedAfter);
@@ -277,6 +334,7 @@ function processRolledHostileMob(
           `damage @e[tag=${summon.nifUUID},limit=1] 0.01 minecraft:player_attack by ${payload.ign}`
         )
       );
+
     case "minecraft:zombie":
     case "minecraft:husk":
     case "minecraft:zombie_villager":
@@ -323,6 +381,7 @@ function processRolledHostileMob(
     case "minecraft:endermite":
     case "minecraft:phantom":
     case "minecraft:breeze":
+      summon.makeThemOneShot();
     case "minecraft:blaze":
     case "minecraft:evoker":
     case "minecraft:guardian":
@@ -336,7 +395,7 @@ function processRolledHostileMob(
       break;
   }
 
-  addCommand(payload.ign, summon);
+  return summon;
 }
 
 function processDefaultMelee(summon: SummonEntityCommand) {
@@ -350,7 +409,7 @@ function processDefaultMelee(summon: SummonEntityCommand) {
 
 function processRolledPassiveMob(
   mob: RandomPassiveMobIds,
-  payload: Redemption
+  payload: RedemptionProcessor
 ) {
   let summon = new SummonPassiveCommand(payload.ign, mob);
   summon.setCustomName(payload.namedAfter);
@@ -417,7 +476,7 @@ function processRolledPassiveMob(
       break;
   }
 
-  addCommand(payload.ign, summon);
+  return summon;
 }
 
 const PositiveTippedArrowEffects: TippedArrowEffects[] = [

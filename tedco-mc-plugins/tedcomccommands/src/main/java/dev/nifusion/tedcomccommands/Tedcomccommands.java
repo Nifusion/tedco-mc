@@ -9,7 +9,6 @@ public final class Tedcomccommands extends JavaPlugin {
     private FloatySplashHealCommand floatySplashHealCommand;
     private MakeItRainHealCloudCommand makeItRainHealCloudCommand;
     private SmackDatAssCommand smackDatAssCommand;
-    private LlamaMadCommand llamaMadCommand;
 
     private static Tedcomccommands instance;
     @Override
@@ -28,9 +27,6 @@ public final class Tedcomccommands extends JavaPlugin {
 
         smackDatAssCommand = new SmackDatAssCommand();
         this.getCommand("smackdatass").setExecutor(smackDatAssCommand);
-
-        llamaMadCommand = new LlamaMadCommand();
-        this.getCommand("llamamad").setExecutor(llamaMadCommand);
 
         System.out.println("Tedco MC Command Plugin loaded.");
 

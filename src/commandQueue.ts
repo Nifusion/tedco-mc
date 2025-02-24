@@ -1,3 +1,4 @@
+import { AttributeCommand } from "./attributeCommand";
 import { DirectCommand } from "./directCommand";
 import { ICommand } from "./ICommand";
 import ServerManager from "./serverManager";
@@ -10,6 +11,8 @@ interface PlayerCommandQueue {
   intervalId: NodeJS.Timeout | null;
   countdownInterval: NodeJS.Timeout | null;
   finalInterval: NodeJS.Timeout | null;
+
+  resetAttributeInterval: NodeJS.Timeout | null;
 }
 
 let playerQueues: Map<string, PlayerCommandQueue> = new Map();
@@ -23,6 +26,7 @@ function getPlayerQueue(playerName: string) {
       intervalId: null,
       countdownInterval: null,
       finalInterval: null,
+      resetAttributeInterval: null,
     });
   }
   return playerQueues.get(playerName)!;
@@ -45,13 +49,28 @@ export function start(playerName: string) {
       if (command)
         try {
           ServerManager.getInstance().sendCommand(command);
-          if (command instanceof SummonEntityCommand) {
+          if (command.type == "SummonRandomEntity") {
             const sec = command as SummonEntityCommand;
             if (sec.secondary)
               setTimeout(() => {
                 if (sec.secondary)
                   ServerManager.getInstance().sendCommand(sec.secondary);
               }, 100);
+          }
+
+          if (command.type == "Attribute") {
+            if (playerQueue.resetAttributeInterval) {
+              clearTimeout(playerQueue.resetAttributeInterval);
+            }
+            if ((command as AttributeCommand).operation == "set") {
+              playerQueue.resetAttributeInterval = setTimeout(() => {
+                ServerManager.getInstance().sendCommand(
+                  new AttributeCommand(playerName).resetAttribute(
+                    "minecraft:scale"
+                  )
+                );
+              }, 60 * 1000);
+            }
           }
         } catch (error) {
           console.error("Error processing command:", command, error);

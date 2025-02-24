@@ -3,10 +3,33 @@ import path from "path";
 import { ProcessRedemption, Redemption } from "./redemptionProcessor";
 import { ICommand } from "./ICommand";
 import { DirectCommand } from "./directCommand";
-import { pauseQueue, resumeQueue } from "./commandQueue";
+import { addCommand, pauseQueue, resumeQueue } from "./commandQueue";
+import playerSubscriptionManager from "./playerSubscriptionManager";
+import RegisteredCommandParser from "./internalCommandParser";
+import PlayerConnectionManager from "./playerConnectionManager";
+import { AttributeCommand } from "./attributeCommand";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
 const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
+
+enum MinecraftColor {
+  Black = "0",
+  DarkBlue = "1",
+  DarkGreen = "2",
+  DarkAqua = "3",
+  DarkRed = "4",
+  DarkPurple = "5",
+  Gold = "6",
+  Gray = "7",
+  DarkGray = "8",
+  Blue = "9",
+  Green = "a",
+  Aqua = "b",
+  Red = "c",
+  LightPurple = "d",
+  Yellow = "e",
+  White = "f",
+}
 
 class ServerManager {
   private static instance: ServerManager | null = null;
@@ -41,9 +64,12 @@ class ServerManager {
     );
 
     this.mcServer.stdout?.on("data", (data: string) => {
-      const match = this.extractRegisteredCommandData(data);
+      PlayerConnectionManager.getInstance().processServerLog(data);
+
+      const match = new RegisteredCommandParser().parseCommand(data);
       if (match) {
-        const { player, command, args } = match;
+        console.log(data.toString());
+        const { player, command, staticArgs, flags } = match;
 
         console.log(`Detected ${command} command from player: ${player}`, {
           match,
@@ -76,12 +102,80 @@ class ServerManager {
 
         if (command === "normalize") {
           console.log(`${player} issued the /normalize command.`);
+          if (
+            flags.hasOwnProperty("force") ||
+            flags.hasOwnProperty("f") ||
+            staticArgs.find((s) => s === "force")
+          ) {
+            console.log("forcing");
+            this.sendCommand(
+              new AttributeCommand(player).resetAttribute("minecraft:scale")
+            );
+          } else {
+            //  forcing it through the queue clears out the reset timer from the last time
+            addCommand(
+              player,
+              new AttributeCommand(player).resetAttribute("minecraft:scale")
+            );
+          }
+        }
 
-          this.sendCommand(
-            new DirectCommand(
-              `execute as ${player} run say Nifusion sucks at coding. Coming soon...`
-            )
-          );
+        if (command === "subscribe") {
+          console.log(`${player} issued the /subscribe command.`, staticArgs);
+
+          if (staticArgs && staticArgs.length === 1) {
+            const streamer = staticArgs[0];
+            const res = playerSubscriptionManager
+              .getInstance()
+              .subscribe(player, streamer);
+
+            if (res.success)
+              this.sayToPlayer(
+                player,
+                `Successfully subscribed to ${streamer}`
+              );
+            else
+              this.sayToPlayer(
+                player,
+                `Unable to subscribe to ${streamer}. [${res.reason}]`
+              );
+          } else {
+            this.sayToPlayer(
+              player,
+              `/subscribe TargetStreamer`,
+              MinecraftColor.Red
+            );
+          }
+        }
+
+        if (command === "unsubscribe") {
+          console.log(`${player} issued the /unsubscribe command.`);
+
+          const res = playerSubscriptionManager
+            .getInstance()
+            .unsubscribe(player);
+
+          if (res) this.sayToPlayer(player, "Successfully unsubscribed");
+          else this.sayToPlayer(player, "Something went wrong.");
+        }
+
+        if (command === "currentsub") {
+          const res = playerSubscriptionManager
+            .getInstance()
+            .getSubscription(player);
+
+          if (res && res.streamer) {
+            this.sayToPlayer(
+              player,
+              `You are currently subscribed to events from ${res.streamer}'s stream. Enjoy the chaos.`,
+              MinecraftColor.Green
+            );
+          } else {
+            this.sayToPlayer(
+              player,
+              `You are not currently subscribed to any streamer. Enjoy the silence.`
+            );
+          }
         }
 
         return;
@@ -99,7 +193,8 @@ class ServerManager {
           ProcessRedemption({
             amount: 0,
             eventTitle: "Heal",
-            ign: player,
+            source: args.source ?? "self",
+            selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
             force: args.force,
           });
@@ -109,7 +204,8 @@ class ServerManager {
           ProcessRedemption({
             amount: 1,
             eventTitle: "Random",
-            ign: player,
+            source: args.source ?? "self",
+            selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
             force: args.force,
           });
@@ -119,7 +215,8 @@ class ServerManager {
           ProcessRedemption({
             amount: 1,
             eventTitle: "Passive",
-            ign: player,
+            source: args.source ?? "self",
+            selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
             force: args.force,
           });
@@ -129,7 +226,8 @@ class ServerManager {
           ProcessRedemption({
             amount: 5,
             eventTitle: "Random",
-            ign: player,
+            source: args.source ?? "self",
+            selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
             force: args.force,
           });
@@ -145,9 +243,20 @@ class ServerManager {
           ProcessRedemption({
             amount: 5 * count,
             eventTitle: "Random",
-            ign: player,
+            source: args.source ?? "self",
+            selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
             force: args.force,
+          });
+        }
+
+        if (command === "testbigted") {
+          ProcessRedemption({
+            amount: 0,
+            eventTitle: "BigTed",
+            source: args.source ?? "self",
+            selfIGN: player,
+            namedAfter: args.name ?? "TestCommand",
           });
         }
       }
@@ -184,15 +293,33 @@ class ServerManager {
     return true;
   }
 
+  public sayToPlayer(
+    player: string,
+    message: string,
+    color?: MinecraftColor
+  ): boolean {
+    if (!this.mcServer) return false;
+
+    // Apply the color code if provided, prepend it to the message with §
+    if (color) {
+      message = `§${color}${message}`; // Apply the color code to the message
+    }
+
+    this.mcServer.stdin?.write(
+      `execute as ${player} run say ${message}` + "\n"
+    );
+    return true;
+  }
+
   private handlePanic(playerName: string) {
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[tag=serverSpawned,tag=${playerName},distance=..128] at ${playerName} run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1}`
+        `execute at ${playerName} as @e[tag=serverSpawned, distance=..128] if entity @s[tag=${playerName}] run data merge entity @s {NoAI:1,Silent:1,Invulnerable:1}`
       )
     );
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[type=minecraft:vex] at ${playerName} run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1}`
+        `execute at ${playerName} as @e[type=minecraft:vex] run data merge entity @s {NoAI:1,Silent:1,Invulnerable:1}`
       )
     );
     pauseQueue(playerName);
@@ -201,12 +328,12 @@ class ServerManager {
   private handleUnpanic(playerName: string) {
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[tag=serverSpawned,tag=${playerName}] at ${playerName} run data merge entity @s {NoAI:0, Silent:0, Invulnerable:0}`
+        `execute at ${playerName} as @e[tag=serverSpawned, distance=..128] if entity @s[tag=${playerName}] run data merge entity @s {NoAI:0,Silent:0,Invulnerable:0}`
       )
     );
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[type=minecraft:vex] at ${playerName} run data merge entity @s {NoAI:0, Silent:0, Invulnerable:0}`
+        `execute at ${playerName} as @e[type=minecraft:vex] run data merge entity @s {NoAI:0,Silent:0,Invulnerable:0}`
       )
     );
     resumeQueue(playerName);
@@ -215,17 +342,17 @@ class ServerManager {
   private handleWipe(playerName: string) {
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[tag=serverSpawned,tag=${playerName},distance=..128] at ${playerName} run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1, HandItems:[], ArmorItems:[]}`
+        `execute at ${playerName} as @e[tag=serverSpawned, distance=..128] if entity @s[tag=${playerName}] run data merge entity @s {NoAI:1, Silent:1, Invulnerable:1, HandItems:[], ArmorItems:[]}`
       )
     );
     this.sendCommand(
       new DirectCommand(
-        `execute as @e[tag=serverSpawned,tag=${playerName},distance=..128] at ${playerName} run effect give @s minecraft:invisibility infinite 1 true`
+        `execute at ${playerName} as @e[tag=serverSpawned, distance=..128] if entity @s[tag=${playerName}] run effect give @s minecraft:invisibility infinite 1 true`
       )
     );
     this.sendCommand(
       new DirectCommand(
-        `execute as ${playerName} run kill @e[tag=serverSpawned,tag=${playerName},distance=..128]`
+        `execute at ${playerName} as @e[tag=serverSpawned, distance=..128] if entity @s[tag=${playerName}] run kill @s`
       )
     );
     this.sendCommand(
@@ -233,19 +360,6 @@ class ServerManager {
         `execute as ${playerName} run kill @e[type=minecraft:vex,distance=..128]`
       )
     );
-  }
-
-  private extractRegisteredCommandData(data: string) {
-    const match = String(data).match(this.commandPattern);
-    if (match) {
-      const player = match[1];
-      const command = match[2].toLocaleLowerCase();
-      const argsString = match[3] || "";
-
-      const args = this.parseArgs(argsString);
-      return { player, command, args };
-    }
-    return null;
   }
 
   private parseArgs(argsString: string) {

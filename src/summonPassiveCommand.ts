@@ -1,4 +1,4 @@
-import { ICommand } from "./ICommand";
+import { CommandType, ICommand } from "./ICommand";
 import { randomNumberNoFloor } from "./mathUtils";
 import { MobIds } from "./MobProcessing/summonsUtils";
 import {
@@ -50,6 +50,8 @@ export class SummonPassiveCommand implements ICommand {
   executeAt: String;
   mob: MobIds;
   private NBT: NBT = new NBT();
+
+  type: CommandType = "SummonRandomPassive";
 
   constructor(executeAt: string, mob: MobIds) {
     this.executeAt = executeAt;

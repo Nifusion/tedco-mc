@@ -1,6 +1,7 @@
 package dev.nifusion.tedcomccommands;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -8,18 +9,28 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 
 public class FlingCommand implements CommandExecutor, Listener {
 
     private final Plugin plugin;
-    private static final int FALL_DAMAGE_DISABLE_TIME = 10 * 20;
-    private final Set<Player> noFallDamage = new HashSet<>();
+
+    private static final double RANDOM_SCALING_FACTOR = 0.3;
+    private static final double Y_POSITION_THRESHOLD = 0.1;
+    private final Random random = new Random();
+
+    private final Set<Player> playersWithNoFallDamage = new HashSet<>();
 
     public FlingCommand(Plugin plugin) {
         this.plugin = plugin;
@@ -39,11 +50,19 @@ public class FlingCommand implements CommandExecutor, Listener {
             return false;
         }
 
-        player.setVelocity(player.getVelocity().setY(power));
+        double horizontalPower = Math.abs(power) * RANDOM_SCALING_FACTOR;
+        double randomX = (random.nextDouble() * 2 - 1) * horizontalPower;
+        double randomZ = (random.nextDouble() * 2 - 1) * horizontalPower;
 
-        noFallDamage.add(player);
+        player.setVelocity(new Vector(randomX, power, randomZ));
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> noFallDamage.remove(player), FALL_DAMAGE_DISABLE_TIME);
+        if (!playersWithNoFallDamage.contains(player)) {
+            if(isWearingElytra(player))
+                plugin.getLogger().info(player.getName() + " has been flung while wearing an elytra; they can cancel their own fall damage.");
+            else{
+            plugin.getLogger().info(player.getName() + " has been flung and is added to the fall damage cancellation list.");
+            playersWithNoFallDamage.add(player);}
+        }
 
         return true;
     }
@@ -56,17 +75,36 @@ public class FlingCommand implements CommandExecutor, Listener {
         }
     }
 
+    private boolean isWearingElytra(Player player) {
+        PlayerInventory inventory = player.getInventory();
+        ItemStack chestplate = inventory.getChestplate();
+        return chestplate != null && chestplate.getType() == Material.ELYTRA;
+    }
+
     @EventHandler
     public void onFallDamage(EntityDamageEvent event) {
         if (event.getEntity() instanceof Player player) {
-            if (noFallDamage.contains(player) && event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+            if (playersWithNoFallDamage.contains(player) && event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+                plugin.getLogger().info(player.getName() + " triggered fall damage cancellation.");
+
                 event.setCancelled(true);
-                noFallDamage.remove(player); // Remove after first impact
+                playersWithNoFallDamage.remove(player);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onElytraActivate(EntityToggleGlideEvent event) {
+        // Check if the entity is a player and if they are activating their Elytra
+        if (event.getEntity() instanceof Player player && event.isGliding()) {
+            if (playersWithNoFallDamage.contains(player)) {
+                playersWithNoFallDamage.remove(player); // Remove fall damage cancellation
+                plugin.getLogger().info(player.getName() + " has activated their elytra; fall damage cancellation removed.");
             }
         }
     }
 
     public void cleanup() {
-        noFallDamage.clear();
+        playersWithNoFallDamage.clear();
     }
 }

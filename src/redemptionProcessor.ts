@@ -21,7 +21,7 @@ import {
   randomRabbitVariant,
   randomSheepVariant,
   randomWolfVariant,
-} from "./Commands/variants";
+} from "./Commands/PassiveNBT";
 import { CommandCluster } from "./Commands/ICommand";
 import { AttributeCommand } from "./Commands/attributeCommand";
 import commandQueueManager from "./Managers/commandQueueManager";
@@ -33,12 +33,9 @@ import {
 } from "./Utils/mathUtils";
 import PlayerConnectionManager from "./Managers/playerConnectionManager";
 import playerSubscriptionManager from "./Managers/playerSubscriptionManager";
-import {
-  HandItem,
-  HandItems,
-  SummonEntityCommand,
-} from "./Commands/summonEntityCommand";
+import { SummonEntityCommand } from "./Commands/summonEntityCommand";
 import { SummonPassiveCommand } from "./Commands/summonPassiveCommand";
+import { HandItem, HandItems } from "./Commands/MonsterNBT";
 
 interface IRedemptionDictionary {
   [key: string]: (payload: RedemptionProcessor) => CommandCluster | undefined;
@@ -72,6 +69,11 @@ export function ProcessRedemption(payload: Redemption) {
   const { eventTitle, source } = payload;
   const output = RedemptionDictionary[eventTitle];
 
+  if (payload.source === "self" && payload.selfIGN) {
+    Process(payload.selfIGN.toLowerCase());
+    return;
+  }
+
   const whoToHit = playerSubscriptionManager
     .getInstance()
     .getPlayersForStreamer(source);
@@ -85,9 +87,6 @@ export function ProcessRedemption(payload: Redemption) {
       console.log(`${inGameVictim} is not online to receive the redemption`);
     }
   });
-
-  if (payload.source === "self" && payload.selfIGN)
-    Process(payload.selfIGN.toLowerCase());
 
   return undefined;
 
@@ -325,13 +324,13 @@ function processRolledHostileMob(
             new HandItems().withMainHand(new HandItem(rollForMainHand()))
           );
         } else {
-          // else get ranged
+          //  else get ranged
           summon.withHandItems(
             new HandItems().withMainHand(new HandItem("minecraft:bow"))
           );
 
           if (randomNumber(1, 10) === 1) {
-            // get special arrows
+            //  get special arrows
             if (randomNumber(1, 2) === 1)
               summon.withHandItems(
                 new HandItems().withOffHand(
@@ -349,7 +348,7 @@ function processRolledHostileMob(
                 )
               );
           } else {
-            //get regular arrows
+            //  get regular arrows
             //  no need to roll off hand
           }
         }
@@ -383,9 +382,9 @@ function processRolledHostileMob(
         new HandItems().withMainHand(new HandItem("minecraft:crossbow"))
       );
 
-      // get special arrows
+      //  get special arrows
       if (randomNumber(1, 10) === 1) {
-        // get positive arrows
+        //  get positive arrows
         if (randomNumber(1, 2) === 1)
           summon.withHandItems(
             new HandItems().withOffHand(
@@ -403,7 +402,7 @@ function processRolledHostileMob(
             )
           );
       } else {
-        //get regular arrows
+        //  get regular arrows
         //  no need to roll off hand
       }
       break;

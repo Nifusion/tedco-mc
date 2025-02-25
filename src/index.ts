@@ -9,13 +9,13 @@ import PlayerConnectionManager from "./Managers/playerConnectionManager";
 import PlayerSubscriptionManager from "./Managers/playerSubscriptionManager";
 import { ProcessRedemption } from "./redemptionProcessor";
 import ServerManager from "./Managers/serverManager";
-import StreamElementsSocket from "./Managers/streamelementsSocket";
 import {
   deleteAllSubscriptions,
   getBroadcasterId,
   getOAuthToken,
   subscribeToEventSub,
 } from "./Managers/subscriptionManager";
+import StreamElementsSocket from "./Managers/StreamElementsSocket";
 
 const app = express();
 app.use(express.json());
@@ -98,11 +98,10 @@ app.listen(API_PORT, async () => {
     broadcasterId
   );
 
-  new StreamElementsSocket(process.env.JWT ?? "").connect();
+  //new StreamElementsSocket(process.env.JWT ?? "").connect();
   //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
   //await subscribeToEventSub("channel.cheer", token, broadcasterId);
 
-  //
   ServerManager.getInstance().startServerInstance();
 
   PlayerConnectionManager.getInstance().wipeActivePlayersTable();

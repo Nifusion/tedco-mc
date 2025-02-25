@@ -2,6 +2,7 @@ import { randomNumberNoFloor } from "../Utils/mathUtils";
 import { MobIds } from "./summonsUtils";
 import { CommandType, ICommand } from "./ICommand";
 import {
+  NBT,
   catVariant,
   frogVariant,
   horseVariant,
@@ -11,40 +12,7 @@ import {
   rabbitVariant,
   sheepVariant,
   wolfVariant,
-} from "./variants";
-
-class NBT {
-  Tags: string[] = ["serverSpawned"];
-  PersistenceRequired: boolean = true;
-  DeathLootTable: string = "";
-  CustomName?: string;
-
-  Age: number = 0;
-
-  Variant:
-    | parrotVariant
-    | catVariant
-    | frogVariant
-    | horseVariant
-    | llamaVariant
-    | undefined = undefined;
-
-  //  WHY DID WE LOWER CASE THIS?!
-  variant?: wolfVariant = undefined;
-
-  RabbitType?: rabbitVariant = undefined;
-
-  Color?: sheepVariant = undefined;
-
-  EggLayTime?: number = undefined;
-
-  IsScreamingGoat?: boolean = undefined;
-  HasRightHorn?: boolean = undefined;
-  HasLeftHorn?: boolean = undefined;
-
-  MainGene?: pandaGene = undefined;
-  HiddenGene?: pandaGene = undefined;
-}
+} from "./PassiveNBT";
 
 export class SummonPassiveCommand implements ICommand {
   executeAt: String;

@@ -1,6 +1,9 @@
-import { AttributeCommand } from "../Commands/attributeCommand";
+import {
+  AttributeCommand,
+  resetAllKnownAttributes,
+} from "../Commands/attributeCommand";
 import { DirectCommand } from "../Commands/directCommand";
-import { ICommand } from "../Commands/ICommand";
+import { CommandCluster, ICommand } from "../Commands/ICommand";
 import { SummonEntityCommand } from "../Commands/summonEntityCommand";
 import ServerManager from "./serverManager";
 
@@ -45,6 +48,12 @@ export default class commandQueueManager {
   public addCommand(playerName: string, command: ICommand) {
     const playerQueue = this.getPlayerQueue(playerName);
     playerQueue.queue.push(command);
+    if (!playerQueue.processing) this.start(playerName);
+  }
+
+  public addCommands(playerName: string, commands: CommandCluster) {
+    const playerQueue = this.getPlayerQueue(playerName);
+    commands.forEach(playerQueue.queue.push);
     if (!playerQueue.processing) this.start(playerName);
   }
 
@@ -111,8 +120,8 @@ export default class commandQueueManager {
         }
         if ((command as AttributeCommand).operation == "set") {
           playerQueue.resetAttributeInterval = setTimeout(() => {
-            ServerManager.getInstance().sendCommand(
-              new AttributeCommand(playerName).resetAttribute("minecraft:scale")
+            ServerManager.getInstance().sendCommands(
+              resetAllKnownAttributes(playerName)
             );
           }, 60 * 1000);
         }

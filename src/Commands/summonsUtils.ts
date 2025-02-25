@@ -5,7 +5,7 @@ export type RandomHostileMobIds =
   | "minecraft:enderman"
   | "minecraft:endermite"
   | "minecraft:evoker"
-  | "minecraft:guardian" //on a chicken
+  | "minecraft:guardian"
   | "minecraft:husk"
   | "minecraft:llama"
   | "minecraft:phantom"
@@ -14,7 +14,7 @@ export type RandomHostileMobIds =
   | "minecraft:skeleton"
   | "minecraft:spider"
   | "minecraft:warden"
-  | "minecraft:witch" //replace poison potion
+  | "minecraft:witch"
   | "minecraft:wither"
   | "minecraft:zombie_villager"
   | "minecraft:zombified_piglin"

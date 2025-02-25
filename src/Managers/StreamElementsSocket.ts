@@ -62,7 +62,7 @@ class StreamElementsSocket {
       );
     } else if (event.type === "communityGiftPurchase") {
       console.log(
-        `${event.data.username} gifted ${event.data.amount} to the stream`
+        `${event.data.username} gifted ${event.data.amount} subs to the stream`
       );
     } else if (event.type === "subscriber") {
       console.log(

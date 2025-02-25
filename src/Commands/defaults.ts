@@ -1,12 +1,7 @@
-import {
-  ArmorItem,
-  ArmorItems,
-  HandItem,
-  HandItems,
-  SummonEntityCommand,
-} from "./summonEntityCommand";
+import { SummonEntityCommand } from "./summonEntityCommand";
 import { randomNumber } from "../Utils/mathUtils";
 import { MobHoldingItem, MobWearingItem } from "./summonsUtils";
+import { ArmorItem, ArmorItems, HandItem, HandItems } from "./MonsterNBT";
 
 export function coinFlip(): boolean {
   return randomNumber(1, 100) > 50;

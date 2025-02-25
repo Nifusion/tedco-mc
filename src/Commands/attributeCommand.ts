@@ -1,4 +1,4 @@
-import { CommandType, ICommand } from "./ICommand";
+import { CommandCluster, CommandType, ICommand } from "./ICommand";
 
 type AttributeOperation = "set" | "reset";
 type ValidAttributes = "minecraft:scale";
@@ -46,3 +46,9 @@ export class AttributeCommand implements ICommand {
     return command;
   }
 }
+
+export const resetAllKnownAttributes = (player: string): CommandCluster => {
+  return new CommandCluster(
+    new AttributeCommand(player).resetAttribute("minecraft:scale")
+  );
+};

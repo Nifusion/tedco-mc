@@ -1,7 +1,10 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
-import { ICommand } from "../Commands/ICommand";
-import { AttributeCommand } from "../Commands/attributeCommand";
+import { CommandCluster, ICommand } from "../Commands/ICommand";
+import {
+  AttributeCommand,
+  resetAllKnownAttributes,
+} from "../Commands/attributeCommand";
 import { DirectCommand } from "../Commands/directCommand";
 import commandQueueManager from "./commandQueueManager";
 import RegisteredCommandParser from "../Utils/internalCommandParser";
@@ -109,20 +112,14 @@ class ServerManager {
             flags.hasOwnProperty("f") ||
             staticArgs.find((s) => s === "force")
           ) {
-            this.sendCommand(
-              new AttributeCommand(lowerCasePlayer).resetAttribute(
-                "minecraft:scale"
-              )
-            );
+            this.sendCommands(resetAllKnownAttributes(lowerCasePlayer));
           } else {
             //  forcing it through the queue clears out the reset timer from the last time
             commandQueueManager
               .getInstance()
-              .addCommand(
+              .addCommands(
                 lowerCasePlayer,
-                new AttributeCommand(lowerCasePlayer).resetAttribute(
-                  "minecraft:scale"
-                )
+                resetAllKnownAttributes(lowerCasePlayer)
               );
           }
         }
@@ -350,6 +347,12 @@ class ServerManager {
 
     console.log(command.toString());
     this.mcServer.stdin?.write(command.toString() + "\n");
+    return true;
+  }
+
+  public sendCommands(commands: CommandCluster): boolean {
+    commands.forEach(this.sendCommand);
+
     return true;
   }
 

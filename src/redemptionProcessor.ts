@@ -13,7 +13,7 @@ import {
   TippedArrowEffects,
 } from "./MobProcessing/summonsUtils";
 import { AttributeCommand } from "./attributeCommand";
-import { addCommand } from "./commandQueue";
+import commandQueueManager from "./commandQueueManager";
 import { DirectCommand } from "./directCommand";
 import {
   randomNumber,
@@ -64,7 +64,7 @@ export const RedemptionDictionary: IRedemptionDictionary = {
   BigTed: (payload) => handleBigTed(payload),
   Fling: (payload) => handleFling(payload),
   feedme: (payload) => handleFeedMe(payload),
-  "Gib Hug Now Ted": (payload) => handleRandomHostileMob(payload),
+  "Buy Ted a Drink": (payload) => handleFeedMe(payload),
   "*": (payload) => handleRandomHostileMob(payload),
 };
 
@@ -86,7 +86,8 @@ export function ProcessRedemption(payload: Redemption) {
     }
   });
 
-  if (payload.source === "self" && payload.selfIGN) Process(payload.selfIGN.toLowerCase());
+  if (payload.source === "self" && payload.selfIGN)
+    Process(payload.selfIGN.toLowerCase());
 
   return undefined;
 
@@ -106,7 +107,7 @@ export function ProcessRedemption(payload: Redemption) {
     }
 
     commandCluster.forEach((command) => {
-      addCommand(inGameVictim, command);
+      commandQueueManager.getInstance().addCommand(inGameVictim, command);
     });
   }
 }
@@ -285,8 +286,6 @@ function handleFeedMe(payload: RedemptionProcessor) {
   const food = randomNumber(2, 6);
 
   return new CommandCluster(new DirectCommand(`feedme ${ign} ${food}`));
-
-  
 }
 
 function handleBigTed(payload: RedemptionProcessor) {

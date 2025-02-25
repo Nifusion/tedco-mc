@@ -4,6 +4,8 @@ server/
 server*/
 ui-tester/
 
+*.db*
+
 #Maven
 target/
 pom.xml.tag
@@ -155,3 +157,4 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+*.db*

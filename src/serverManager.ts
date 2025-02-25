@@ -3,11 +3,11 @@ import path from "path";
 import { ProcessRedemption, Redemption } from "./redemptionProcessor";
 import { ICommand } from "./ICommand";
 import { DirectCommand } from "./directCommand";
-import { addCommand, pauseQueue, resumeQueue } from "./commandQueue";
 import playerSubscriptionManager from "./playerSubscriptionManager";
 import RegisteredCommandParser from "./internalCommandParser";
 import PlayerConnectionManager from "./playerConnectionManager";
 import { AttributeCommand } from "./attributeCommand";
+import commandQueueManager from "./commandQueueManager";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
 const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
@@ -116,12 +116,14 @@ class ServerManager {
             );
           } else {
             //  forcing it through the queue clears out the reset timer from the last time
-            addCommand(
-              lowerCasePlayer,
-              new AttributeCommand(lowerCasePlayer).resetAttribute(
-                "minecraft:scale"
-              )
-            );
+            commandQueueManager
+              .getInstance()
+              .addCommand(
+                lowerCasePlayer,
+                new AttributeCommand(lowerCasePlayer).resetAttribute(
+                  "minecraft:scale"
+                )
+              );
           }
         }
 
@@ -185,6 +187,16 @@ class ServerManager {
               `You are not currently subscribed to any streamer. Enjoy the silence.`
             );
           }
+        }
+
+        if (command === "pause") {
+          playerSubscriptionManager.getInstance().setPauseStatus(player, true);
+          commandQueueManager.getInstance().pauseQueue(player);
+        }
+
+        if (command === "unpause") {
+          playerSubscriptionManager.getInstance().setPauseStatus(player, false);
+          commandQueueManager.getInstance().unpauseQueue(player);
         }
 
         return;
@@ -352,7 +364,7 @@ class ServerManager {
         `execute at ${playerName} as @e[type=minecraft:vex] run data merge entity @s {NoAI:1,Silent:1,Invulnerable:1}`
       )
     );
-    pauseQueue(playerName);
+    commandQueueManager.getInstance().panicQueue(playerName);
   }
 
   private handleUnpanic(playerName: string) {
@@ -366,7 +378,7 @@ class ServerManager {
         `execute at ${playerName} as @e[type=minecraft:vex] run data merge entity @s {NoAI:0,Silent:0,Invulnerable:0}`
       )
     );
-    resumeQueue(playerName);
+    commandQueueManager.getInstance().unpanicQueue(playerName);
   }
 
   private handleWipe(playerName: string) {

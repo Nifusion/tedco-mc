@@ -21,7 +21,9 @@ class PlayerSubscriptionManager {
         CREATE TABLE IF NOT EXISTS subscriptions (
           player TEXT PRIMARY KEY,
           streamer TEXT NULL,
-          lastUpdate TEXT NOT NULL
+          lastUpdate TEXT NOT NULL,
+          paused BOOLEAN DEFAULT 0,
+          pausedSince TEXT
         );
       `);
 
@@ -60,8 +62,8 @@ class PlayerSubscriptionManager {
     try {
       const result = this.db
         .prepare(
-          `INSERT INTO subscriptions (player, streamer, lastUpdate)
-            VALUES (?, ?, ?)
+          `INSERT INTO subscriptions (player, streamer, lastUpdate, paused, pausedSince)
+            VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(player) DO UPDATE SET
                 streamer = excluded.streamer,
                 lastUpdate = excluded.lastUpdate;`
@@ -69,9 +71,10 @@ class PlayerSubscriptionManager {
         .run(
           player.toLowerCase(),
           streamer?.toLowerCase(),
-          new Date().toISOString()
+          new Date().toISOString(),
+          0,
+          null
         );
-
       if (result.changes === 1) {
         console.log(`${player} subscribed to ${streamer} successfully`);
         return { success: true, reason: "" };
@@ -114,19 +117,32 @@ class PlayerSubscriptionManager {
     }
   }
 
-  getSubscription(
-    player: string
-  ): { streamer: string | null; lastUpdate: string } | null {
+  getSubscription(player: string): {
+    streamer: string | null;
+    lastUpdate: string;
+    paused: boolean;
+  } | null {
     try {
       const row = this.db
         .prepare(
-          `SELECT streamer, lastUpdate FROM subscriptions WHERE player = ?`
+          `SELECT streamer, lastUpdate, paused FROM subscriptions WHERE player = ?`
         )
         .get(player.toLowerCase()) as
-        | { streamer: string | null; lastUpdate: string }
+        | {
+            streamer: string | null;
+            lastUpdate: string;
+            paused: number;
+          }
         | undefined;
 
-      return row || null;
+      if (row) {
+        return {
+          streamer: row.streamer,
+          lastUpdate: row.lastUpdate,
+          paused: row.paused === 1,
+        };
+      }
+      return null;
     } catch (error) {
       console.error("Error fetching subscription for", player, error);
       return null;
@@ -135,34 +151,37 @@ class PlayerSubscriptionManager {
 
   getAllSubscriptions(): Map<
     string,
-    { streamer: string | null; lastUpdate: string }
+    { streamer: string | null; lastUpdate: string; paused: boolean }
   > {
     try {
       const prep = this.db.prepare(
-        `SELECT player, streamer, lastUpdate FROM subscriptions`
+        `SELECT player, streamer, lastUpdate, paused FROM subscriptions`
       );
 
       const subscriptions = new Map<
         string,
-        { streamer: string | null; lastUpdate: string }
+        { streamer: string | null; lastUpdate: string; paused: boolean }
       >();
 
       const rows = prep.all() as {
         player: string;
         streamer: string | null;
         lastUpdate: string;
+        paused: boolean;
       }[];
 
       for (const row of rows) {
         subscriptions.set(row.player, {
           streamer: row.streamer,
           lastUpdate: row.lastUpdate,
+          paused: row.paused,
         });
       }
 
       return subscriptions;
     } catch (error) {
       console.error("Error fetching all subscriptions:", error);
+
       return new Map();
     }
   }
@@ -177,6 +196,23 @@ class PlayerSubscriptionManager {
     } catch (error) {
       console.error("Error fetching players for streamer", streamer, error);
       return [];
+    }
+  }
+
+  setPauseStatus(player: string, paused: boolean): boolean {
+    try {
+      const timestamp = paused ? new Date().toISOString() : null;
+
+      const result = this.db
+        .prepare(
+          `UPDATE subscriptions SET paused = ?, pausedSince = ? WHERE player = ?`
+        )
+        .run(paused ? 1 : 0, timestamp, player.toLowerCase());
+
+      return result.changes === 1;
+    } catch (error) {
+      console.error("Error updating pause status for", player, error);
+      return false;
     }
   }
 

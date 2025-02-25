@@ -10,6 +10,8 @@ public final class Tedcomccommands extends JavaPlugin {
     private MakeItRainHealCloudCommand makeItRainHealCloudCommand;
     private SmackDatAssCommand smackDatAssCommand;
     private FeedCommand feedCommand;
+    private QueueCommandCompleter queueCommandCompleter;
+    private StreamCommandCompleter streamCommandCompleter;
 
     private static Tedcomccommands instance;
 
@@ -32,6 +34,14 @@ public final class Tedcomccommands extends JavaPlugin {
 
         feedCommand = new FeedCommand();
         this.getCommand("feedme").setExecutor(feedCommand);
+
+        queueCommandCompleter = new QueueCommandCompleter();
+        this.getCommand("queue").setExecutor(queueCommandCompleter);
+        this.getCommand("queue").setTabCompleter(queueCommandCompleter);
+
+        streamCommandCompleter = new StreamCommandCompleter();
+        this.getCommand("stream").setExecutor(streamCommandCompleter);
+        this.getCommand("stream").setTabCompleter(streamCommandCompleter);
 
         System.out.println("Tedco MC Command Plugin loaded.");
 

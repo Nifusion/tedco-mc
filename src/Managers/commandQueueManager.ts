@@ -45,6 +45,10 @@ export default class commandQueueManager {
     return this.playerQueues.get(playerName.toLowerCase())!;
   }
 
+  public getQueueCount(playerName: string): number {
+    return this.getPlayerQueue(playerName).queue.length;
+  }
+
   public addCommand(playerName: string, command: ICommand) {
     const playerQueue = this.getPlayerQueue(playerName);
     playerQueue.queue.push(command);
@@ -97,7 +101,7 @@ export default class commandQueueManager {
         }
       }
 
-      setTimeout(processNext, 25);
+      setTimeout(processNext, 5);
     };
 
     const commandFollowUp = (
@@ -154,7 +158,9 @@ export default class commandQueueManager {
       if (timeLeft > 3 && timeLeft % 5 === 0) {
         ServerManager.getInstance().sendCommand(
           new DirectCommand(
-            `tellraw ${playerName} "Lifting temporary pause in ${timeLeft} seconds... (Queued: ${playerQueue.queue.length})"`
+            `tellraw ${playerName} "Lifting temporary pause in ${timeLeft} seconds... (${
+              playerQueue.globalPause ? "You are paused," : ""
+            }Queued: ${playerQueue.queue.length})"`
           )
         );
       }
@@ -179,7 +185,11 @@ export default class commandQueueManager {
     const playerQueue = this.getPlayerQueue(playerName);
     if (!playerQueue.panicked) return;
     ServerManager.getInstance().sendCommand(
-      new DirectCommand(`tellraw ${playerName} "Unpanicking... Have fun! :)"`)
+      new DirectCommand(
+        `tellraw ${playerName} "Unpanicking... ${
+          playerQueue.globalPause ? "But you're still paused" : "Have fun! :)"
+        }"`
+      )
     );
     setTimeout(() => {
       const playerQueue = this.getPlayerQueue(playerName);
@@ -232,5 +242,17 @@ export default class commandQueueManager {
       if (!playerQueue.processing && playerQueue.queue.length > 0)
         this.start(playerName);
     }, 1000);
+  }
+
+  public clearQueue(playerName: string) {
+    const playerQueue = this.getPlayerQueue(playerName);
+
+    playerQueue.queue = [];
+    this.stop(playerName);
+
+    ServerManager.getInstance().sayToPlayer(
+      playerName,
+      "Your queue has been cleared!"
+    );
   }
 }

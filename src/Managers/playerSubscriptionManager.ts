@@ -45,11 +45,11 @@ class PlayerSubscriptionManager {
     return PlayerSubscriptionManager.instance;
   }
 
-  subscribe(
+  link(
     player: string,
     streamer: string | null
   ): { success: boolean; reason: string } {
-    console.log(`Subscribing ${player} to ${streamer}`);
+    console.log(`${player} linking to ${streamer}`);
 
     if (streamer && !this.isStreamerValid(streamer)) {
       console.error(`Streamer ${streamer} is not valid.`);
@@ -76,14 +76,14 @@ class PlayerSubscriptionManager {
           null
         );
       if (result.changes === 1) {
-        console.log(`${player} subscribed to ${streamer} successfully`);
+        console.log(`${player} linked ${streamer} successfully`);
         return { success: true, reason: "" };
       } else {
         console.error(
           "Something went wrong while updating subscription for",
           player
         );
-        return { success: false, reason: "Failed to subscribe." };
+        return { success: false, reason: "Failed to link." };
       }
     } catch (error) {
       console.error("Error subscribing player:", player, error);
@@ -94,8 +94,8 @@ class PlayerSubscriptionManager {
     }
   }
 
-  unsubscribe(player: string): boolean {
-    console.log("Unsubscribing", player);
+  unlink(player: string): boolean {
+    console.log("Leaving", player);
 
     try {
       const result = this.db
@@ -105,7 +105,7 @@ class PlayerSubscriptionManager {
         .run(new Date().toISOString(), player.toLowerCase());
 
       if (result.changes === 1) {
-        console.log(`${player} unsubscribed successfully`);
+        console.log(`${player} unlinked successfully`);
         return true;
       } else {
         console.error("Something went wrong while unsubscribing", player);

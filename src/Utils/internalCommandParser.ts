@@ -29,6 +29,10 @@ class RegisteredCommandParser {
     const staticArgs: string[] = [];
     const flags: Record<string, string | undefined> = {};
 
+    if (argsString.trim() === "") {
+      return { staticArgs, flags };
+    }
+
     const args = argsString.split(/\s+/);
 
     let currentFlag: string | undefined = undefined;

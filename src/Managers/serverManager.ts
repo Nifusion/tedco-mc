@@ -11,24 +11,30 @@ import RegisteredCommandParser from "../Utils/internalCommandParser";
 import PlayerConnectionManager from "./playerConnectionManager";
 import playerSubscriptionManager from "./playerSubscriptionManager";
 import { ProcessRedemption } from "../redemptionProcessor";
+import EventSourceManager from "./EventSourceManager";
+import PlayerSubscriptionManager from "./playerSubscriptionManager";
+import {
+  closeAllSubscriptionsForStreamer,
+  openAllSubscriptionsForStreamer,
+} from "./subscriptionManager";
 
 enum MinecraftColor {
-  Black = "0",
-  DarkBlue = "1",
-  DarkGreen = "2",
-  DarkAqua = "3",
-  DarkRed = "4",
-  DarkPurple = "5",
-  Gold = "6",
-  Gray = "7",
-  DarkGray = "8",
-  Blue = "9",
-  Green = "a",
-  Aqua = "b",
-  Red = "c",
-  LightPurple = "d",
-  Yellow = "e",
-  White = "f",
+  Black = "black",
+  DarkBlue = "dark_blue",
+  DarkGreen = "dark_green",
+  DarkAqua = "dark_aqua",
+  DarkRed = "dark_red",
+  DarkPurple = "dark_purple",
+  Gold = "gold",
+  Gray = "gray",
+  DarkGray = "dark_gray",
+  Blue = "blue",
+  Green = "green",
+  Aqua = "aqua",
+  Red = "red",
+  LightPurple = "light_purple",
+  Yellow = "yellow",
+  White = "white",
 }
 
 class ServerManager {
@@ -66,136 +72,150 @@ class ServerManager {
       const match = new RegisteredCommandParser().parseCommand(data);
       if (match) {
         console.log(data.toString());
-        const { player, command, staticArgs, flags } = match;
+        const { command, staticArgs, flags } = match;
 
-        const lowerCasePlayer = player.toLowerCase();
+        const player = match.player?.toLowerCase();
 
-        console.log(
-          `Detected ${command} command from player: ${lowerCasePlayer}`,
-          {
-            match,
-          }
-        );
+        console.log(`Detected ${command} command from player: ${player}`, {
+          match,
+        });
 
         if (command === "panic") {
-          console.log(`${lowerCasePlayer} issued the /panic command.`);
-          this.handlePanic(lowerCasePlayer);
+          console.log(`${player} issued the /panic command.`);
+          this.handlePanic(player);
         }
 
         if (command === "unpanic") {
-          console.log(`${lowerCasePlayer} issued the /unpanic command.`);
-          this.handleUnpanic(lowerCasePlayer);
+          console.log(`${player} issued the /unpanic command.`);
+          this.handleUnpanic(player);
         }
 
         if (command === "wipe") {
-          console.log(`${lowerCasePlayer} issued the /wipe command.`);
-          this.handleWipe(lowerCasePlayer);
+          console.log(`${player} issued the /wipe command.`);
+          this.handleWipe(player);
         }
 
         if (command === "nsac") {
-          console.log(`${lowerCasePlayer} thinks Nifusion sucks at coding.`);
+          console.log(`${player} thinks Nifusion sucks at coding.`);
 
           this.sendCommand(
             new DirectCommand(
-              `execute as ${lowerCasePlayer} run say Nifusion sucks at coding. Coming soon...`
+              `execute as ${player} run say Nifusion sucks at coding. Coming soon...`
             )
           );
         }
 
         if (command === "normalize") {
-          console.log(`${lowerCasePlayer} issued the /normalize command.`);
+          console.log(`${player} issued the /normalize command.`);
           if (
             flags.hasOwnProperty("force") ||
             flags.hasOwnProperty("f") ||
             staticArgs.find((s) => s === "force")
           ) {
-            this.sendCommands(resetAllKnownAttributes(lowerCasePlayer));
+            this.sendCommands(resetAllKnownAttributes(player));
           } else {
             //  forcing it through the queue clears out the reset timer from the last time
             commandQueueManager
               .getInstance()
-              .addCommands(
-                lowerCasePlayer,
-                resetAllKnownAttributes(lowerCasePlayer)
-              );
+              .addCommands(player, resetAllKnownAttributes(player));
           }
         }
 
-        if (command === "subscribe") {
-          console.log(
-            `${lowerCasePlayer} issued the /subscribe command.`,
-            staticArgs
-          );
+        if (command === "link") {
+          console.log(`${player} issued the /link command.`, staticArgs);
 
           if (staticArgs && staticArgs.length === 1) {
             const streamer = staticArgs[0];
             const res = playerSubscriptionManager
               .getInstance()
-              .subscribe(lowerCasePlayer, streamer);
+              .link(player, streamer);
 
             if (res.success)
-              this.sayToPlayer(
-                lowerCasePlayer,
-                `Successfully subscribed to ${streamer}`
-              );
+              this.sayToPlayer(player, `Successfully linked to ${streamer}`);
             else
               this.sayToPlayer(
-                lowerCasePlayer,
-                `Unable to subscribe to ${streamer}. [${res.reason}]`
+                player,
+                `Unable to link to ${streamer}. [${res.reason}]`
               );
           } else {
             this.sayToPlayer(
-              lowerCasePlayer,
-              `/subscribe TargetStreamer`,
+              player,
+              `/link TargetStreamer`,
               MinecraftColor.Red
             );
           }
         }
 
-        if (command === "unsubscribe") {
-          console.log(`${lowerCasePlayer} issued the /unsubscribe command.`);
+        if (command === "unlink") {
+          console.log(`${player} issued the /unlink command.`);
 
-          const res = playerSubscriptionManager
-            .getInstance()
-            .unsubscribe(lowerCasePlayer);
+          const res = playerSubscriptionManager.getInstance().unlink(player);
 
-          if (res)
-            this.sayToPlayer(lowerCasePlayer, "Successfully unsubscribed");
-          else this.sayToPlayer(lowerCasePlayer, "Something went wrong.");
+          if (res) this.sayToPlayer(player, "Successfully unlinked");
+          else this.sayToPlayer(player, "Something went wrong.");
         }
 
         if (command === "status") {
-          const res = playerSubscriptionManager
+          const playerSub = playerSubscriptionManager
             .getInstance()
-            .getSubscription(lowerCasePlayer);
+            .getSubscription(player);
+          console.log(playerSub);
+          const queueCount = commandQueueManager
+            .getInstance()
+            .getQueueCount(player);
 
-          if (res) {
-            if (res.paused) {
-              this.sayToPlayer(
-                lowerCasePlayer,
-                `You are currently paused, so any events you receive will be queued up for when you /unpause.`,
-                MinecraftColor.Green
-              );
-            }
+          const thisPlayerControls =
+            EventSourceManager.getInstance().getStreamerByInGameName(player);
 
-            if (res.streamer) {
-              this.sayToPlayer(
-                lowerCasePlayer,
-                `You are currently subscribed to events from ${res.streamer}'s stream. Enjoy the chaos.`,
-                MinecraftColor.Green
+          let playerStreamer = null;
+          if (playerSub && playerSub.streamer)
+            playerStreamer =
+              EventSourceManager.getInstance().getStreamerByInGameName(
+                playerSub.streamer
               );
-            } else {
-              this.sayToPlayer(
-                lowerCasePlayer,
-                `You are not currently subscribed to any streamer. Enjoy the silence.`,
-                MinecraftColor.Green
-              );
-            }
+
+          if (playerStreamer?.data) {
+            this.sayToPlayer(
+              player,
+              `Status Check for [${player}] - ${
+                thisPlayerControls?.data ? "Streamer" : "Player"
+              }\n   - Linked Streamer: ${
+                playerSub?.streamer
+              }\n   - Streamer Exists? ${
+                playerStreamer?.data ? "Yes" : "No"
+              }\n   - Streamer Paused? ${
+                playerStreamer?.data?.active === 1 ? "No" : "Yes"
+              }\n   - Player Paused? ${
+                playerSub?.paused ? "Yes" : "No"
+              }\n   - Queue Count: ${queueCount}\n`,
+              MinecraftColor.Green
+            );
           } else {
             this.sayToPlayer(
-              lowerCasePlayer,
-              `We can't find you in the database. Something went terribly wrong. Go make fun of Nifusion or relog or something. I don't know.`,
-              MinecraftColor.Gold
+              player,
+              `Status Check for [${player}] - ${
+                thisPlayerControls?.data ? "Streamer" : "Player"
+              }\n   - Linked Streamer: ${
+                playerSub?.streamer ?? ""
+              }\n   - Player Paused? ${
+                playerSub?.paused ? "Yes" : "No"
+              }\n   - Queue Count: ${queueCount}\n`,
+              MinecraftColor.LightPurple
+            );
+          }
+
+          if (thisPlayerControls?.data) {
+            console.log(thisPlayerControls.data);
+            this.sayToPlayer(
+              player,
+              `You control the event stream for twitch.tv/${
+                thisPlayerControls.data.streamer
+              } and the server is currently ${
+                thisPlayerControls.data.active === 1 ? "" : "not"
+              } listening to your stream's events`,
+              thisPlayerControls.data.active === 1
+                ? MinecraftColor.Aqua
+                : MinecraftColor.Gold
             );
           }
         }
@@ -208,6 +228,31 @@ class ServerManager {
         if (command === "unpause") {
           playerSubscriptionManager.getInstance().setPauseStatus(player, false);
           commandQueueManager.getInstance().unpauseQueue(player);
+        }
+
+        if (command === "stream") {
+          if (staticArgs.length === 1) {
+            const action = staticArgs[0];
+            if (action === "activate") {
+              this.sayToPlayer(player, "Opening your event stream...");
+              this.handleActivateStream(player);
+            } else if (action === "deactivate") {
+              this.sayToPlayer(player, "Closing your event stream...");
+              this.deactivateStream(player);
+            }
+          }
+        }
+
+        if (command === "queue") {
+          if (staticArgs.length === 1) {
+            if (staticArgs[0] == "clear")
+              commandQueueManager.getInstance().clearQueue(player);
+          } else {
+            const count = commandQueueManager
+              .getInstance()
+              .getQueueCount(player);
+            this.sayToPlayer(player, `Your queue count is ${count}`);
+          }
         }
 
         return;
@@ -224,7 +269,7 @@ class ServerManager {
         if (command === "testheal") {
           ProcessRedemption({
             amount: 0,
-            eventTitle: "Heal",
+            eventType: "Heal",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -235,7 +280,7 @@ class ServerManager {
         if (command === "testrandom") {
           ProcessRedemption({
             amount: 1,
-            eventTitle: "Random",
+            eventType: "RandomHostile",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -246,7 +291,7 @@ class ServerManager {
         if (command === "testpassive") {
           ProcessRedemption({
             amount: 1,
-            eventTitle: "Passive",
+            eventType: "RandomPassive",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -257,7 +302,7 @@ class ServerManager {
         if (command === "testsub") {
           ProcessRedemption({
             amount: 5,
-            eventTitle: "Random",
+            eventType: "Sub",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -274,7 +319,7 @@ class ServerManager {
 
           ProcessRedemption({
             amount: 5 * count,
-            eventTitle: "Random",
+            eventType: "GiftSub",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -285,7 +330,7 @@ class ServerManager {
         if (command === "testbigted") {
           ProcessRedemption({
             amount: 0,
-            eventTitle: "BigTed",
+            eventType: "Size",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -295,7 +340,7 @@ class ServerManager {
         if (command === "testfling") {
           ProcessRedemption({
             amount: 0,
-            eventTitle: "Fling",
+            eventType: "Fling",
             source: args.source ?? "self",
             selfIGN: player,
             namedAfter: args.name ?? "TestCommand",
@@ -303,16 +348,16 @@ class ServerManager {
           });
         }
 
-        if (command === "testfeedme") {
-          ProcessRedemption({
-            amount: 0,
-            eventTitle: "feedme",
-            source: args.source ?? "self",
-            selfIGN: player,
-            namedAfter: args.name ?? "TestCommand",
-            force: args.force,
-          });
-        }
+        // if (command === "testfeedme") {
+        //   ProcessRedemption({
+        //     amount: 0,
+        //     eventType: "feedme",
+        //     source: args.source ?? "self",
+        //     selfIGN: player,
+        //     namedAfter: args.name ?? "TestCommand",
+        //     force: args.force,
+        //   });
+        // }
       }
 
       console.error(`MC DATA: ${data.toString()}`);
@@ -326,6 +371,88 @@ class ServerManager {
       console.log(`Server process exited with code ${code}`);
       this.mcServer = null;
     });
+  }
+
+  private handleActivateStream(player: string) {
+    const streamer =
+      EventSourceManager.getInstance().getStreamerByInGameName(player);
+    if (!streamer.data || streamer.success === false) {
+      this.sayToPlayer(
+        player,
+        `We cannot find your in game name on the streamers table. Please contact Nifusion and yell at him.`,
+        MinecraftColor.Gold
+      );
+      return;
+    }
+
+    const setStatus = EventSourceManager.getInstance().setStreamerActiveStatus(
+      player,
+      true
+    );
+
+    if (setStatus.success) {
+      openAllSubscriptionsForStreamer(streamer.data).then((res) => {
+        if (res.success)
+          this.sayToPlayer(
+            player,
+            `The server is now listening to your event sources`,
+            MinecraftColor.Green
+          );
+        else
+          this.sayToPlayer(
+            player,
+            `Something went wrong while opening your event sources`,
+            MinecraftColor.Gold
+          );
+      });
+    } else {
+      this.sayToPlayer(
+        player,
+        `Something went wrong while opening your event sources`,
+        MinecraftColor.Gold
+      );
+    }
+  }
+
+  private deactivateStream(player: string) {
+    const streamer =
+      EventSourceManager.getInstance().getStreamerByInGameName(player);
+    if (!streamer.data || streamer.success === false) {
+      this.sayToPlayer(
+        player,
+        `We cannot find your in game name on the streamers table. Please contact Nifusion and yell at him.`,
+        MinecraftColor.Gold
+      );
+      return;
+    }
+
+    const setStatus = EventSourceManager.getInstance().setStreamerActiveStatus(
+      player,
+      false
+    );
+
+    if (setStatus.success) {
+      closeAllSubscriptionsForStreamer(streamer.data).then((res) => {
+        if (res.success)
+          this.sayToPlayer(
+            player,
+            `The server is no longer listening to your event sources`,
+            MinecraftColor.Green
+          );
+        else
+          this.sayToPlayer(
+            player,
+            `Something went wrong while closing your event sources`,
+            MinecraftColor.Gold
+          );
+      });
+    } else {
+      this.sayToPlayer(
+        player,
+        `Something went wrong while closing your event sources`,
+        MinecraftColor.Gold
+      );
+    }
   }
 
   public stopServerInstance() {
@@ -360,13 +487,20 @@ class ServerManager {
   ): boolean {
     if (!this.mcServer) return false;
 
+    // Convert newlines and tabs to JSON format
+    message = message.replace(/\n/g, "\\n").replace(/"/g, '\\"'); // Escape double quotes in message
+
+    // Create a JSON formatted message to use with tellraw
+    let jsonMessage = `{"text": "${message}"}`;
+    // If a color is provided, include it in the JSON
     if (color) {
-      message = `§${color}${message}`;
+      jsonMessage = `{"text": "${message}", "color": "${color}"}`;
     }
 
-    this.mcServer.stdin?.write(
-      `execute as ${player} run say ${message}` + "\n"
-    );
+    const finalmessage = `tellraw ${player} ${jsonMessage}` + "\n";
+    console.log(finalmessage);
+
+    this.mcServer.stdin?.write(finalmessage);
     return true;
   }
 

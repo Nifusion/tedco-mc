@@ -3,20 +3,25 @@ import express from "express";
 import ReadLine from "readline";
 const crypto = require("crypto");
 require("dotenv").config();
+require("dotenv").config({ path: `.env.${process.env.NODE_ENV}` });
 
 import commandQueueManager from "./Managers/commandQueueManager";
 import PlayerConnectionManager from "./Managers/playerConnectionManager";
 import PlayerSubscriptionManager from "./Managers/playerSubscriptionManager";
-import { ProcessRedemption } from "./redemptionProcessor";
+import {
+  ProcessRedemption,
+  RedemptionProcessingKey,
+} from "./redemptionProcessor";
 import ServerManager from "./Managers/serverManager";
 import {
   deleteAllSubscriptions,
-  getBroadcasterId,
-  getOAuthToken,
-  subscribeToEventSub,
+  exchangeCodeForToken,
+  getAppAccessToken,
+  getBroadcasterIdByAccessToken,
+  openAllSubscriptionsForStreamer,
 } from "./Managers/subscriptionManager";
-import StreamElementsSocket from "./Managers/StreamElementsSocket";
 import path from "path";
+import EventSourceManager from "./Managers/EventSourceManager";
 
 const serverJar = path.join(path.dirname(__dirname), "server/paper.jar");
 
@@ -44,7 +49,59 @@ function verifySignature(req: any) {
 }
 
 app.get("/api", (req, res) => {
+  console.log(req.body, req.query);
+
   res.send("Why are you even here? Go away.");
+});
+
+app.get("/api/token-confirm", async (req, res) => {
+  console.log(req.body, req.query);
+
+  if (!req.query || !req.query.code) {
+    res.status(400).send("Bad request");
+    return;
+  }
+
+  console.log("Access code received; attempting code-for-token exchange.");
+  const codeForToken = await exchangeCodeForToken(req.query.code.toString());
+
+  if (!codeForToken || !codeForToken.access_token) {
+    res.status(500).send("Something went wrong when retrieving token.");
+    return;
+  }
+
+  console.log("Access token received; attempting broadcaster sync.");
+
+  const broadcasterResp = await getBroadcasterIdByAccessToken(
+    codeForToken.access_token
+  );
+
+  if (!broadcasterResp) {
+    res
+      .status(500)
+      .send("Something went wrong when retrieving broadcaster information.");
+    return;
+  }
+
+  console.log("Broadcaster information received; attempting db ops.");
+
+  const dbResp = EventSourceManager.getInstance().createOrUpdateStreamer({
+    streamer: broadcasterResp.login,
+    twitch_broadcaster_id: broadcasterResp.id,
+    twitch_access_token: codeForToken.access_token,
+    twitch_refresh_token: codeForToken.refresh_token,
+  });
+
+  if (!dbResp.success) {
+    res
+      .status(500)
+      .send("Something went wrong when saving broadcaster information.");
+    return;
+  }
+
+  console.log("Successfully saved", broadcasterResp.login);
+
+  res.status(200).send("Success. Please reach out to the admin to follow up.");
 });
 
 app.post("/api" + DIRECT_SECRET_ENDPOINT, (req, res) => {
@@ -59,23 +116,87 @@ app.post("/api/webhook", (req, res) => {
     return;
   }
 
-  if (req.body.challenge) {
+  const { subscription, event, challenge } = req.body;
+
+  if (challenge) {
+    console.log(
+      `Received challenge confirmation for ${subscription?.condition?.broadcaster_user_id} - ${subscription?.type}`
+    );
     res.setHeader("content-type", "text/plain");
     res.status(200).send(req.body.challenge);
     return;
   }
 
   if (req.body) {
-    console.log(
-      `Redemption "${req.body.event.reward.title}" received from ${req.body.event.user_name} in ${req.body.event.broadcaster_user_name} stream`
-    );
+    if (subscription.type) {
+      console.log(
+        `Twitch Event ${subscription.type} received from ${event.broadcaster_user_name}`
+      );
 
-    ProcessRedemption({
-      amount: 1,
-      source: req.body.event.broadcaster_user_name,
-      eventTitle: req.body.event.reward.title,
-      namedAfter: req.body.event.user_name,
-    });
+      const streamerName = event.broadcaster_user_login;
+      const chatter = event.user_name;
+
+      if (subscription.type.toLowerCase() == "channel.cheer") {
+        //  is a cheer
+        const bits = parseInt(event.bits);
+
+        if (bits >= 100)
+          ProcessRedemption({
+            amount: Math.floor(bits / 100),
+            source: streamerName,
+            eventType: "RandomHostile",
+            namedAfter: chatter,
+          });
+      } else if (subscription.type == "channel.subscription.gift") {
+        //  is a gift purchase
+        const subCount = parseInt(event.total);
+        ProcessRedemption({
+          amount: subCount * 5,
+          source: streamerName,
+          eventType: "GiftSub",
+          namedAfter: chatter,
+        });
+      } else if (subscription.type == "channel.subscribe") {
+        //  is a sub
+        const isGift = event.isGift === true;
+        if (isGift) return;
+
+        const subTier = parseInt(event.tier);
+        let mobCount = 5;
+        if (subTier === 2) mobCount = 7;
+        if (subTier === 3) mobCount = 10;
+
+        ProcessRedemption({
+          amount: mobCount,
+          source: streamerName,
+          eventType: "Sub",
+          namedAfter: chatter,
+        });
+      } else if (event.reward) {
+        //  is a redemption
+        let shouldDoEvent = false;
+
+        let eventType: RedemptionProcessingKey = "RandomHostile";
+
+        if (shouldDoEvent)
+          ProcessRedemption({
+            amount: 1,
+            source: streamerName,
+            eventType,
+            namedAfter: chatter,
+          });
+      }
+
+      if (subscription.type == "channel.chat.message") {
+        console.log(req.body);
+        ProcessRedemption({
+          amount: 1,
+          source: streamerName,
+          eventType: "RandomHostile",
+          namedAfter: event.chatter_user_name,
+        });
+      }
+    }
   }
 
   res.status(200).send("Event received");
@@ -87,23 +208,27 @@ const rl = ReadLine.createInterface({
 });
 
 app.listen(API_PORT, async () => {
-  const token = await getOAuthToken();
-  if (!token) return;
+  const appAccessToken = await getAppAccessToken();
 
-  await deleteAllSubscriptions(token);
+  if (!appAccessToken) {
+    console.error("App Access Token not generated.");
+    return;
+  }
 
-  const broadcasterId = await getBroadcasterId("TedFarkass", token);
-  if (!broadcasterId) return;
+  console.log("Wiping all subscriptions on load");
+  await deleteAllSubscriptions(appAccessToken);
 
-  await subscribeToEventSub(
-    "channel.channel_points_custom_reward_redemption.add",
-    token,
-    broadcasterId
+  console.log("Re-syncing all active subscriptions");
+  const activeStreamers = EventSourceManager.getInstance().getActiveStreamers();
+  if (activeStreamers.success) {
+    console.error("Active streamer sync on load failed.");
+  }
+
+  console.log(
+    `There are ${activeStreamers.streamers.length} active streamers to subscribe with.`
   );
 
-  //new StreamElementsSocket(process.env.JWT ?? "").connect();
-  //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
-  //await subscribeToEventSub("channel.cheer", token, broadcasterId);
+  activeStreamers.streamers.forEach(openAllSubscriptionsForStreamer);
 
   ServerManager.getInstance().startServerInstance(serverJar);
 

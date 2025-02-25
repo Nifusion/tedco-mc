@@ -36,15 +36,29 @@ import playerSubscriptionManager from "./Managers/playerSubscriptionManager";
 import { SummonEntityCommand } from "./Commands/summonEntityCommand";
 import { SummonPassiveCommand } from "./Commands/summonPassiveCommand";
 import { HandItem, HandItems } from "./Commands/MonsterNBT";
+import EventSourceManager from "./Managers/EventSourceManager";
 
-interface IRedemptionDictionary {
-  [key: string]: (payload: RedemptionProcessor) => CommandCluster | undefined;
-}
+export type RedemptionProcessingKey =
+  | "RandomHostile"
+  | "RandomPassive"
+  | "Heal"
+  | "Fling"
+  | "Size"
+  | "Sub"
+  | "GiftSub"
+  | "Drink"
+  | "*";
+
+type IRedemptionDictionary = {
+  [key in RedemptionProcessingKey]: (
+    payload: RedemptionProcessor
+  ) => CommandCluster | undefined;
+};
 
 export type Redemption = {
   source: string;
   selfIGN?: string;
-  eventTitle: string;
+  eventType: RedemptionProcessingKey;
   namedAfter: string;
   amount: number;
   force?: string;
@@ -56,18 +70,19 @@ export type RedemptionProcessor = Redemption & {
 
 export const RedemptionDictionary: IRedemptionDictionary = {
   Heal: (payload) => handleHealCluster(payload),
-  Random: (payload) => handleRandomHostileMob(payload),
-  Passive: (payload) => handleRandomPassiveMob(payload),
-  BigTed: (payload) => handleBigTed(payload),
+  RandomHostile: (payload) => handleRandomHostileMob(payload),
+  RandomPassive: (payload) => handleRandomPassiveMob(payload),
+  Size: (payload) => handleSize(payload),
   Fling: (payload) => handleFling(payload),
-  feedme: (payload) => handleFeedMe(payload),
-  "Buy Ted a Drink": (payload) => handleFeedMe(payload),
+  Sub: (payload) => handleRandomHostileMob(payload),
+  GiftSub: (payload) => handleRandomHostileMob(payload),
+  Drink: (payload) => handleFeedMe(payload),
   "*": (payload) => handleRandomHostileMob(payload),
 };
 
 export function ProcessRedemption(payload: Redemption) {
-  const { eventTitle, source } = payload;
-  const output = RedemptionDictionary[eventTitle];
+  const { eventType, source } = payload;
+  const output = RedemptionDictionary[eventType];
 
   if (payload.source === "self" && payload.selfIGN) {
     Process(payload.selfIGN.toLowerCase());
@@ -78,7 +93,18 @@ export function ProcessRedemption(payload: Redemption) {
     .getInstance()
     .getPlayersForStreamer(source);
 
+  const streamer =
+    EventSourceManager.getInstance().getSubscriptionInfoByStreamer(source);
+  if (!streamer.success || !streamer.active) {
+    console.log(
+      "Tried to process a redemption for a streamer whose source is inactive"
+    );
+    return;
+  }
+
   const whoIsOnline = PlayerConnectionManager.getInstance().getActivePlayers();
+
+  console.log(whoToHit, whoIsOnline);
 
   whoToHit.forEach((inGameVictim) => {
     const target = whoIsOnline.get(inGameVictim);
@@ -287,7 +313,7 @@ function handleFeedMe(payload: RedemptionProcessor) {
   return new CommandCluster(new DirectCommand(`feedme ${ign} ${food}`));
 }
 
-function handleBigTed(payload: RedemptionProcessor) {
+function handleSize(payload: RedemptionProcessor) {
   const { ign } = payload;
 
   const randomRoll = randomNumberNoFloorExclusionZoneWithExclusion(

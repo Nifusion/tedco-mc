@@ -1,11 +1,14 @@
 import { io, Socket } from "socket.io-client";
+import { ProcessRedemption } from "../redemptionProcessor";
 
 class StreamElementsSocket {
   private socket: Socket | null = null;
   private readonly URL: string = "https://realtime.streamelements.com";
   private token: string;
+  private streamer: string;
 
-  constructor(token: string) {
+  constructor(streamer: string, token: string) {
+    this.streamer = streamer;
     this.token = token;
   }
 
@@ -56,22 +59,34 @@ class StreamElementsSocket {
       console.log(
         `Tip received: ${event.data.amount} from ${event.data.username}`
       );
-    } else if (event.type === "cheer") {
-      console.log(
-        `Cheer received: ${event.data.amount} bits from ${event.data.username}`
-      );
-    } else if (event.type === "communityGiftPurchase") {
-      console.log(
-        `${event.data.username} gifted ${event.data.amount} subs to the stream`
-      );
-    } else if (event.type === "subscriber") {
-      console.log(
-        `${event.data.username} subscribed to the stream; subscribed for ${event.data.amount}, streak ${event.data.streak}`
-      );
+      ProcessRedemption({
+        amount: event.data.amount / 100,
+        eventType: "RandomHostile",
+        namedAfter: event.data.username,
+        source: this.streamer,
+      });
+      // } else if (event.type === "cheer") {
+      //   console.log(
+      //     `Cheer received: ${event.data.amount} bits from ${event.data.username}`
+      //   );
+      // } else if (event.type === "communityGiftPurchase") {
+      //   console.log(
+      //     `${event.data.username} gifted ${event.data.amount} subs to the stream`
+      //   );
+      // } else if (event.type === "subscriber") {
+      //   console.log(
+      //     `${event.data.username} subscribed to the stream; subscribed for ${event.data.amount}, streak ${event.data.streak}`
+      //   );
     } else if (event.type === "merch") {
       console.log(
         `${event.data.username} bought ${event.data.items.length} merch item(s) totalling $${event.data.amount}`
       );
+      ProcessRedemption({
+        amount: event.data.amount / 100,
+        eventType: "RandomHostile",
+        namedAfter: event.data.username,
+        source: this.streamer,
+      });
     } else if (event.type === "raid") {
       console.log(
         `${event.data.username} is raiding the stream with ${event.data.amount} viewers`

@@ -1,7 +1,7 @@
 name: tedcomccommands
-version: '1.0-SNAPSHOT'
+version: "1.0-SNAPSHOT"
 main: dev.nifusion.tedcomccommands.Tedcomccommands
-api-version: '1.21'
+api-version: "1.21"
 commands:
   fling:
     description: Fling a player into the air.
@@ -23,6 +23,16 @@ commands:
     description: Feeds the player a little munchies
     usage: /feedme <player> <power>
     permission: smackdatass.use
+  queue:
+    description: Manage the player's command queue
+    usage: /<command> [clear]
+    permission: queue.manage
+    permission-message: You do not have permission to use this command.
+  stream:
+    description: Manage the player's stream events
+    usage: /<command> <action>
+    permission: stream.manage
+    permission-message: You do not have permission to use this command.
 permissions:
   fling.use:
     description: Allows a player to use the fling command

@@ -4,16 +4,18 @@ import ReadLine from "readline";
 const crypto = require("crypto");
 require("dotenv").config();
 
+import commandQueueManager from "./Managers/commandQueueManager";
+import PlayerConnectionManager from "./Managers/playerConnectionManager";
+import PlayerSubscriptionManager from "./Managers/playerSubscriptionManager";
 import { ProcessRedemption } from "./redemptionProcessor";
+import ServerManager from "./Managers/serverManager";
+import StreamElementsSocket from "./Managers/streamelementsSocket";
 import {
   deleteAllSubscriptions,
   getBroadcasterId,
   getOAuthToken,
   subscribeToEventSub,
-} from "./subscriptionManager";
-import StreamElementsSocket from "./streamelementsSocket";
-import ServerManager from "./serverManager";
-import PlayerConnectionManager from "./playerConnectionManager";
+} from "./Managers/subscriptionManager";
 
 const app = express();
 app.use(express.json());
@@ -95,13 +97,24 @@ app.listen(API_PORT, async () => {
     token,
     broadcasterId
   );
+
+  new StreamElementsSocket(process.env.JWT ?? "").connect();
   //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
   //await subscribeToEventSub("channel.cheer", token, broadcasterId);
 
-  PlayerConnectionManager.getInstance().wipeActivePlayersTable();
+  //
   ServerManager.getInstance().startServerInstance();
 
-  new StreamElementsSocket(process.env.JWT ?? "").connect();
+  PlayerConnectionManager.getInstance().wipeActivePlayersTable();
+
+  console.log("Syncing player subscription to their queue processor");
+  PlayerSubscriptionManager.getInstance()
+    .getAllSubscriptions()
+    .forEach((sub, player) => {
+      if (sub.paused) {
+        commandQueueManager.getInstance().pauseQueue(player);
+      }
+    });
 
   rl.on("line", (input) => {
     switch (input) {

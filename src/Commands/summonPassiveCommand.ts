@@ -1,6 +1,6 @@
+import { randomNumberNoFloor } from "../Utils/mathUtils";
+import { MobIds } from "./summonsUtils";
 import { CommandType, ICommand } from "./ICommand";
-import { randomNumberNoFloor } from "./mathUtils";
-import { MobIds } from "./MobProcessing/summonsUtils";
 import {
   catVariant,
   frogVariant,

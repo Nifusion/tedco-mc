@@ -1,11 +1,9 @@
 import { randomUUID } from "crypto";
-import { DirectCommand } from "./directCommand";
-import { CommandType, ICommand } from "./ICommand";
 import {
-  randomNumberNoFloor,
-  randomNumberNoFloorExclusionZoneWithExclusion,
-} from "./mathUtils";
-import { MobIds, TippedArrowEffects } from "./MobProcessing/summonsUtils";
+  randomNumberNoFloorExclusionZoneWithExclusion
+} from "../Utils/mathUtils";
+import { MobIds, TippedArrowEffects } from "./summonsUtils";
+import { CommandType, ICommand } from "./ICommand";
 
 class NBT {
   ArmorItems: ArmorItems = new ArmorItems();
@@ -19,11 +17,12 @@ class NBT {
   CustomNameVisible: boolean = true;
   IsBaby: boolean = false;
   active_effects?: PotionEffect[];
+  attributes: [] = [];
   HandDropChances?: HandDropChances = new HandDropChances();
   ArmorDropChances?: ArmorDropChances = new ArmorDropChances();
   //  when wither spawns, you have 30 seconds (600 ticks) for it to charge up
   Invul: number = 600;
-  
+
   constructor(nifUUID: string) {
     this.Tags.push(nifUUID);
   }

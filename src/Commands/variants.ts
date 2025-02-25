@@ -1,4 +1,4 @@
-import { getRandomItem } from "./mathUtils";
+import { getRandomItem } from "../Utils/mathUtils";
 
 export type catVariant =
   | "tabby"

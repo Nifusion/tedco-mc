@@ -1,13 +1,13 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
-import { ProcessRedemption, Redemption } from "./redemptionProcessor";
-import { ICommand } from "./ICommand";
-import { DirectCommand } from "./directCommand";
-import playerSubscriptionManager from "./playerSubscriptionManager";
-import RegisteredCommandParser from "./internalCommandParser";
-import PlayerConnectionManager from "./playerConnectionManager";
-import { AttributeCommand } from "./attributeCommand";
+import { ICommand } from "../Commands/ICommand";
+import { AttributeCommand } from "../Commands/attributeCommand";
+import { DirectCommand } from "../Commands/directCommand";
 import commandQueueManager from "./commandQueueManager";
+import RegisteredCommandParser from "../Utils/internalCommandParser";
+import PlayerConnectionManager from "./playerConnectionManager";
+import playerSubscriptionManager from "./playerSubscriptionManager";
+import { ProcessRedemption } from "../redemptionProcessor";
 
 const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
 const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
@@ -170,21 +170,38 @@ class ServerManager {
           else this.sayToPlayer(lowerCasePlayer, "Something went wrong.");
         }
 
-        if (command === "currentsub") {
+        if (command === "status") {
           const res = playerSubscriptionManager
             .getInstance()
             .getSubscription(lowerCasePlayer);
 
-          if (res && res.streamer) {
-            this.sayToPlayer(
-              lowerCasePlayer,
-              `You are currently subscribed to events from ${res.streamer}'s stream. Enjoy the chaos.`,
-              MinecraftColor.Green
-            );
+          if (res) {
+            if (res.paused) {
+              this.sayToPlayer(
+                lowerCasePlayer,
+                `You are currently paused, so any events you receive will be queued up for when you /unpause.`,
+                MinecraftColor.Green
+              );
+            }
+
+            if (res.streamer) {
+              this.sayToPlayer(
+                lowerCasePlayer,
+                `You are currently subscribed to events from ${res.streamer}'s stream. Enjoy the chaos.`,
+                MinecraftColor.Green
+              );
+            } else {
+              this.sayToPlayer(
+                lowerCasePlayer,
+                `You are not currently subscribed to any streamer. Enjoy the silence.`,
+                MinecraftColor.Green
+              );
+            }
           } else {
             this.sayToPlayer(
               lowerCasePlayer,
-              `You are not currently subscribed to any streamer. Enjoy the silence.`
+              `We can't find you in the database. Something went terribly wrong. Go make fun of Nifusion or relog or something. I don't know.`,
+              MinecraftColor.Gold
             );
           }
         }

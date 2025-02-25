@@ -77,8 +77,6 @@ class StreamElementsSocket {
         `${event.data.username} is raiding the stream with ${event.data.amount} viewers`
       );
     }
-
-    
   };
 
   disconnect() {

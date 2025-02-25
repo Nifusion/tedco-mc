@@ -1,4 +1,3 @@
-import { CommandCluster } from "./ICommand";
 import {
   coinFlip,
   rollDefaultArmor,
@@ -6,28 +5,12 @@ import {
   rollForBaby,
   rollForLeftHanded,
   rollForMainHand,
-} from "./MobProcessing/defaults";
+} from "./Commands/defaults";
 import {
   RandomHostileMobIds,
   RandomPassiveMobIds,
   TippedArrowEffects,
-} from "./MobProcessing/summonsUtils";
-import { AttributeCommand } from "./attributeCommand";
-import commandQueueManager from "./commandQueueManager";
-import { DirectCommand } from "./directCommand";
-import {
-  randomNumber,
-  randomNumberNoFloor,
-  randomNumberNoFloorExclusionZoneWithExclusion,
-} from "./mathUtils";
-import PlayerConnectionManager from "./playerConnectionManager";
-import playerSubscriptionManager from "./playerSubscriptionManager";
-import {
-  HandItem,
-  HandItems,
-  SummonEntityCommand,
-} from "./summonEntityCommand";
-import { SummonPassiveCommand } from "./summonPassiveCommand";
+} from "./Commands/summonsUtils";
 import {
   randomCatVariant,
   randomFrogVariant,
@@ -38,7 +21,24 @@ import {
   randomRabbitVariant,
   randomSheepVariant,
   randomWolfVariant,
-} from "./variants";
+} from "./Commands/variants";
+import { CommandCluster } from "./Commands/ICommand";
+import { AttributeCommand } from "./Commands/attributeCommand";
+import commandQueueManager from "./Managers/commandQueueManager";
+import { DirectCommand } from "./Commands/directCommand";
+import {
+  randomNumber,
+  randomNumberNoFloor,
+  randomNumberNoFloorExclusionZoneWithExclusion,
+} from "./Utils/mathUtils";
+import PlayerConnectionManager from "./Managers/playerConnectionManager";
+import playerSubscriptionManager from "./Managers/playerSubscriptionManager";
+import {
+  HandItem,
+  HandItems,
+  SummonEntityCommand,
+} from "./Commands/summonEntityCommand";
+import { SummonPassiveCommand } from "./Commands/summonPassiveCommand";
 
 interface IRedemptionDictionary {
   [key: string]: (payload: RedemptionProcessor) => CommandCluster | undefined;

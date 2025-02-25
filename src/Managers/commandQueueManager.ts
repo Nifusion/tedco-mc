@@ -1,8 +1,8 @@
-import { AttributeCommand } from "./attributeCommand";
-import { DirectCommand } from "./directCommand";
-import { ICommand } from "./ICommand";
+import { AttributeCommand } from "../Commands/attributeCommand";
+import { DirectCommand } from "../Commands/directCommand";
+import { ICommand } from "../Commands/ICommand";
+import { SummonEntityCommand } from "../Commands/summonEntityCommand";
 import ServerManager from "./serverManager";
-import { SummonEntityCommand } from "./summonEntityCommand";
 
 interface PlayerCommandQueue {
   queue: ICommand[];

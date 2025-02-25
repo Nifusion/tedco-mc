@@ -12,9 +12,6 @@ import PlayerConnectionManager from "./playerConnectionManager";
 import playerSubscriptionManager from "./playerSubscriptionManager";
 import { ProcessRedemption } from "../redemptionProcessor";
 
-const SERVER_FOLDER = path.join(path.dirname(__dirname), "server");
-const SERVER_JAR = path.join(SERVER_FOLDER, "/paper.jar");
-
 enum MinecraftColor {
   Black = "0",
   DarkBlue = "1",
@@ -49,7 +46,7 @@ class ServerManager {
     return this.instance;
   }
 
-  public startServerInstance() {
+  public startServerInstance(pathToServerJar: string) {
     if (this.mcServer) {
       console.log("Server is already running.");
       return;
@@ -57,9 +54,9 @@ class ServerManager {
 
     this.mcServer = spawn(
       "java",
-      ["-Xmx4G", "-Xms4G", "-jar", SERVER_JAR, "nogui"],
+      ["-Xmx4G", "-Xms4G", "-jar", pathToServerJar, "nogui"],
       {
-        cwd: SERVER_FOLDER,
+        cwd: path.dirname(pathToServerJar),
       }
     );
 

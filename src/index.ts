@@ -16,6 +16,9 @@ import {
   subscribeToEventSub,
 } from "./Managers/subscriptionManager";
 import StreamElementsSocket from "./Managers/StreamElementsSocket";
+import path from "path";
+
+const serverJar = path.join(path.dirname(__dirname), "server/paper.jar");
 
 const app = express();
 app.use(express.json());
@@ -102,7 +105,7 @@ app.listen(API_PORT, async () => {
   //await subscribeToEventSub("channel.subscribe", token, broadcasterId);
   //await subscribeToEventSub("channel.cheer", token, broadcasterId);
 
-  ServerManager.getInstance().startServerInstance();
+  ServerManager.getInstance().startServerInstance(serverJar);
 
   PlayerConnectionManager.getInstance().wipeActivePlayersTable();
 
@@ -118,7 +121,7 @@ app.listen(API_PORT, async () => {
   rl.on("line", (input) => {
     switch (input) {
       case "start":
-        ServerManager.getInstance().startServerInstance();
+        ServerManager.getInstance().startServerInstance(serverJar);
         break;
 
       default:

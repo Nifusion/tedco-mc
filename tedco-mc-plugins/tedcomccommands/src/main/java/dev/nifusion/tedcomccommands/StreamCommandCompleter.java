@@ -8,6 +8,7 @@ import org.bukkit.util.StringUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class StreamCommandCompleter implements CommandExecutor, TabCompleter {
 
@@ -18,6 +19,14 @@ public class StreamCommandCompleter implements CommandExecutor, TabCompleter {
         if (cmd.getName().equalsIgnoreCase("stream") && args.length == 1) {
             completions.add("activate");
             completions.add("deactivate");
+        }
+
+        if (cmd.getName().equalsIgnoreCase("stream") && args.length == 2) {
+            if (Objects.equals(args[0], "activate"))
+                completions.add("link");
+
+            if (Objects.equals(args[0], "deactivate"))
+                completions.add("unlink");
         }
 
         return StringUtil.copyPartialMatches(args[args.length - 1], completions, new ArrayList<>());

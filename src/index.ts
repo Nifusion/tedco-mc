@@ -133,10 +133,15 @@ app.post("/api/webhook", (req, res) => {
         `Twitch Event ${subscription.type} received from ${event.broadcaster_user_name}`
       );
 
+      console.log(subscription, event);
+
       const streamerName = event.broadcaster_user_login;
       const chatter = event.user_name;
 
       if (subscription.type.toLowerCase() == "channel.cheer") {
+        console.log(
+          `${chatter} just cheered ${event.bits} bits to ${streamerName}`
+        );
         //  is a cheer
         const bits = parseInt(event.bits);
 
@@ -148,20 +153,38 @@ app.post("/api/webhook", (req, res) => {
             namedAfter: chatter,
           });
       } else if (subscription.type == "channel.subscription.gift") {
+        const subTier = parseInt(event.tier) / 1000;
+
+        console.log(
+          `${chatter} just gifted ${event.total} tier ${subTier} subs to ${streamerName}`
+        );
+
+        let mobCount = 5;
+        if (subTier === 2) mobCount = 7;
+        if (subTier === 3) mobCount = 10;
+
         //  is a gift purchase
         const subCount = parseInt(event.total);
         ProcessRedemption({
-          amount: subCount * 5,
+          amount: subCount * mobCount,
           source: streamerName,
           eventType: "GiftSub",
           namedAfter: chatter,
         });
-      } else if (subscription.type == "channel.subscribe") {
+      } else if (
+        subscription.type == "channel.subscribe" ||
+        subscription.type == "channel.subscription.message"
+      ) {
+        const subTier = parseInt(event.tier) / 1000;
+
         //  is a sub
-        const isGift = event.isGift === true;
+        const isGift = event.is_gift === true;
         if (isGift) return;
 
-        const subTier = parseInt(event.tier);
+        console.log(
+          `${chatter} just subbed at tier ${subTier} to ${streamerName}`
+        );
+
         let mobCount = 5;
         if (subTier === 2) mobCount = 7;
         if (subTier === 3) mobCount = 10;
@@ -176,9 +199,15 @@ app.post("/api/webhook", (req, res) => {
         //  is a redemption
         let shouldDoEvent = false;
 
+        console.log(
+          `${chatter} just redeemed ${event.reward.title} in ${streamerName}'s channel`
+        );
+
+        const userTypedMessage = event.user_input;
+
         let eventType: RedemptionProcessingKey = "RandomHostile";
 
-        if (shouldDoEvent)
+        if (true)
           ProcessRedemption({
             amount: 1,
             source: streamerName,

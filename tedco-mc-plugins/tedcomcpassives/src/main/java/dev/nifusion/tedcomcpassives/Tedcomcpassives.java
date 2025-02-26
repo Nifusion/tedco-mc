@@ -6,6 +6,7 @@ public final class Tedcomcpassives extends JavaPlugin {
 
     private WitchThrownPotionRandomizer witchThrownPotionRandomizer;
     private SilverfishNoBurrow silverfishNoBurrow;
+    private VexSpawnListener vexSpawnListener;
 
     private static Tedcomcpassives instance;
     @Override
@@ -17,6 +18,9 @@ public final class Tedcomcpassives extends JavaPlugin {
 
         silverfishNoBurrow = new SilverfishNoBurrow(this);
         getServer().getPluginManager().registerEvents(silverfishNoBurrow, this);
+
+        vexSpawnListener = new VexSpawnListener(this);
+        getServer().getPluginManager().registerEvents(vexSpawnListener, this);
 
         System.out.println("Tedco MC Passive Plugin loaded.");
 

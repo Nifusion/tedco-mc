@@ -251,6 +251,7 @@ export async function openAllSubscriptionsForStreamer(
       "channel.subscribe",
       "channel.cheer",
       "channel.subscription.gift",
+      "channel.subscription.message",
       "channel.chat.message",
     ]
       .map(async (event) => {

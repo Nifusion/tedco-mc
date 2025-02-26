@@ -122,37 +122,16 @@ class ServerManager {
         }
 
         if (command === "link") {
+          const streamer = staticArgs[0];
           console.log(`${player} issued the /link command.`, staticArgs);
 
-          if (staticArgs && staticArgs.length === 1) {
-            const streamer = staticArgs[0];
-            const res = playerSubscriptionManager
-              .getInstance()
-              .link(player, streamer);
-
-            if (res.success)
-              this.sayToPlayer(player, `Successfully linked to ${streamer}`);
-            else
-              this.sayToPlayer(
-                player,
-                `Unable to link to ${streamer}. [${res.reason}]`
-              );
-          } else {
-            this.sayToPlayer(
-              player,
-              `/link TargetStreamer`,
-              MinecraftColor.Red
-            );
-          }
+          this.handleLink(player, streamer);
         }
 
         if (command === "unlink") {
           console.log(`${player} issued the /unlink command.`);
 
-          const res = playerSubscriptionManager.getInstance().unlink(player);
-
-          if (res) this.sayToPlayer(player, "Successfully unlinked");
-          else this.sayToPlayer(player, "Something went wrong.");
+          this.handleUnlink(player);
         }
 
         if (command === "status") {
@@ -170,21 +149,19 @@ class ServerManager {
           let playerStreamer = null;
           if (playerSub && playerSub.streamer)
             playerStreamer =
-              EventSourceManager.getInstance().getStreamerByInGameName(
+              EventSourceManager.getInstance().getSubscriptionInfoByStreamer(
                 playerSub.streamer
               );
 
-          if (playerStreamer?.data) {
+          if (playerStreamer?.success) {
             this.sayToPlayer(
               player,
               `Status Check for [${player}] - ${
                 thisPlayerControls?.data ? "Streamer" : "Player"
               }\n   - Linked Streamer: ${
                 playerSub?.streamer
-              }\n   - Streamer Exists? ${
-                playerStreamer?.data ? "Yes" : "No"
               }\n   - Streamer Paused? ${
-                playerStreamer?.data?.active === 1 ? "No" : "Yes"
+                playerStreamer?.active ? "No" : "Yes"
               }\n   - Player Paused? ${
                 playerSub?.paused ? "Yes" : "No"
               }\n   - Queue Count: ${queueCount}\n`,
@@ -231,15 +208,23 @@ class ServerManager {
         }
 
         if (command === "stream") {
-          if (staticArgs.length === 1) {
-            const action = staticArgs[0];
-            if (action === "activate") {
-              this.sayToPlayer(player, "Opening your event stream...");
-              this.handleActivateStream(player);
-            } else if (action === "deactivate") {
-              this.sayToPlayer(player, "Closing your event stream...");
-              this.deactivateStream(player);
-            }
+          const action = staticArgs[0];
+          if (action === "activate") {
+            this.handleActivateStream(player);
+          } else if (action === "deactivate") {
+            this.deactivateStream(player);
+          } else {
+            return;
+          }
+
+          const secondaryAction = staticArgs[1];
+          if (secondaryAction === "link") {
+            const linkCheck =
+              EventSourceManager.getInstance().getStreamerByInGameName(player);
+            if (linkCheck.data && linkCheck.data.streamer)
+              this.handleLink(player, linkCheck.data.streamer);
+          } else if (secondaryAction === "unlink") {
+            this.handleUnlink(player);
           }
         }
 
@@ -373,7 +358,34 @@ class ServerManager {
     });
   }
 
+  private handleUnlink(player: string) {
+    const res = playerSubscriptionManager.getInstance().unlink(player);
+
+    if (res) this.sayToPlayer(player, "Successfully unlinked");
+    else this.sayToPlayer(player, "Something went wrong.");
+  }
+
+  private handleLink(player: string, streamer?: string) {
+    if (streamer) {
+      const res = playerSubscriptionManager
+        .getInstance()
+        .link(player, streamer);
+
+      if (res.success)
+        this.sayToPlayer(player, `Successfully linked to ${streamer}`);
+      else
+        this.sayToPlayer(
+          player,
+          `Unable to link to ${streamer}. [${res.reason}]`
+        );
+    } else {
+      this.sayToPlayer(player, `/link TargetStreamer`, MinecraftColor.Red);
+    }
+  }
+
   private handleActivateStream(player: string) {
+    this.sayToPlayer(player, "Opening your event stream...");
+
     const streamer =
       EventSourceManager.getInstance().getStreamerByInGameName(player);
     if (!streamer.data || streamer.success === false) {
@@ -415,6 +427,8 @@ class ServerManager {
   }
 
   private deactivateStream(player: string) {
+    this.sayToPlayer(player, "Closing your event stream...");
+
     const streamer =
       EventSourceManager.getInstance().getStreamerByInGameName(player);
     if (!streamer.data || streamer.success === false) {
@@ -512,7 +526,7 @@ class ServerManager {
     );
     this.sendCommand(
       new DirectCommand(
-        `execute at ${playerName} as @e[type=minecraft:vex] run data merge entity @s {NoAI:1,Silent:1,Invulnerable:1}`
+        `execute at ${playerName} as @e[type=minecraft:vex,name=!"Vex"] run data merge entity @s {NoAI:1,Silent:1,Invulnerable:1}`
       )
     );
     commandQueueManager.getInstance().panicQueue(playerName);
@@ -550,7 +564,7 @@ class ServerManager {
     );
     this.sendCommand(
       new DirectCommand(
-        `execute as ${playerName} run kill @e[type=minecraft:vex,distance=..128]`
+        `execute as ${playerName} run kill @e[type=minecraft:vex,distance=..128,name=!"Vex"]`
       )
     );
   }

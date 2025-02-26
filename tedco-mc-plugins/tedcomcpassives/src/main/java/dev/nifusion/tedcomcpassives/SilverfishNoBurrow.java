@@ -18,8 +18,7 @@ public class SilverfishNoBurrow implements Listener {
     @EventHandler
     public void onSilverfishBurrow(EntityChangeBlockEvent event) {
         Entity entity = event.getEntity();
-        if (entity instanceof Silverfish) {
-            Silverfish silverfish = (Silverfish) entity;
+        if (entity instanceof Silverfish silverfish) {
             if (silverfish.customName() != null) {
                 event.setCancelled(true);
             }

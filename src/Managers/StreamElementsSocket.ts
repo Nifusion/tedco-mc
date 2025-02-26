@@ -57,7 +57,8 @@ class StreamElementsSocket {
   private handleEvent = (event: any) => {
     if (event.type === "tip") {
       console.log(
-        `Tip received: ${event.data.amount} from ${event.data.username}`
+        `Tip received: ${event.data.amount} from ${event.data.username}`,
+        event.data
       );
       ProcessRedemption({
         amount: event.data.amount / 100,
@@ -79,7 +80,8 @@ class StreamElementsSocket {
       //   );
     } else if (event.type === "merch") {
       console.log(
-        `${event.data.username} bought ${event.data.items.length} merch item(s) totalling $${event.data.amount}`
+        `${event.data.username} bought ${event.data.items.length} merch item(s) totalling $${event.data.amount}`,
+        event.data
       );
       ProcessRedemption({
         amount: event.data.amount / 100,
@@ -89,7 +91,8 @@ class StreamElementsSocket {
       });
     } else if (event.type === "raid") {
       console.log(
-        `${event.data.username} is raiding the stream with ${event.data.amount} viewers`
+        `${event.data.username} is raiding the stream with ${event.data.amount} viewers`,
+        event.data
       );
     }
   };
